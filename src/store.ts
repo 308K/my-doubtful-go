@@ -66,7 +66,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   error: null,
   toastMessage: null,
   asOfDate: "2026-06-30",
-  paletteMode: "mygo",
+  paletteMode: "soft",
   darkMode: true,
 
   searchQuery: "",
@@ -80,11 +80,11 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   setPaletteMode: (mode) => set({ paletteMode: mode }),
   togglePaletteMode: () =>
     set((s) => ({
-      paletteMode: s.paletteMode === "mygo" ? "classic" : "mygo",
+      paletteMode: s.paletteMode === "soft" ? "classic" : "soft",
       toastMessage:
-        s.paletteMode === "mygo"
-          ? "已切换为「标准财务色卡」模式"
-          : "已切换为「MyGO!!!!! 乐队五人代表色」潮流预警模式",
+        s.paletteMode === "soft"
+          ? "已切换为「经典财务预警色」模式"
+          : "已切换为「柔和预警色」模式",
     })),
   toggleDarkMode: () =>
     set((s) => {
@@ -103,7 +103,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
     document.documentElement.classList.add("dark");
     if (!isMyGo()) {
       set({
-        error: "当前运行在浏览器预览模式，请通过 mygo dev 或编译后的桌面端运行以启用 Go 内核计算能力。",
+        error: "当前运行在浏览器预览模式，请通过桌面端运行以启用Go内核计算能力。",
       });
       return;
     }
@@ -133,7 +133,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       set({
         pipelineData: data,
         isLoading: false,
-        toastMessage: `已加载实训标准样本《应收账款明细表_原始数据.xlsx》（耗时 ${data?.durationMs.toFixed(1)} ms）`,
+        toastMessage: `已载入内置样本《应收账款明细表_原始数据.xlsx》（耗时${data?.durationMs.toFixed(1)}ms）`,
       });
     } catch (err) {
       set({
@@ -151,7 +151,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
         set({
           pipelineData: data,
           isLoading: false,
-          toastMessage: `已导入并完成 5 步清洗《${data.sourceFileName}》（耗时 ${data.durationMs.toFixed(1)} ms）`,
+          toastMessage: `已导入并完成5步清洗《${data.sourceFileName}》（耗时${data.durationMs.toFixed(1)}ms）`,
         });
       } else {
         set({ isLoading: false });
@@ -172,7 +172,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
         set({
           pipelineData: data,
           isLoading: false,
-          toastMessage: `拖拽导入成功：《${data.sourceFileName}》（有效明细 ${data.normalCount} 笔 + 挂起 ${data.totalSuspended} 笔）`,
+          toastMessage: `拖拽导入成功：《${data.sourceFileName}》（有效明细${data.normalCount}笔+挂起${data.totalSuspended}笔）`,
         });
       } else {
         set({ isLoading: false });
@@ -201,7 +201,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
         set({
           pipelineData: data,
           isLoading: false,
-          toastMessage: `已解析并清洗《${data.sourceFileName}》（耗时 ${data.durationMs.toFixed(1)} ms）`,
+          toastMessage: `已解析并清洗《${data.sourceFileName}》（耗时${data.durationMs.toFixed(1)}ms）`,
         });
       } else {
         set({ isLoading: false });
@@ -222,7 +222,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
         set({
           pipelineData: data,
           isLoading: false,
-          toastMessage: `已按新基准日 [${newDate}] 全量重算账龄与坏账准备（耗时 ${data.durationMs.toFixed(1)} ms）`,
+          toastMessage: `已按新基准日[${newDate}]重算账龄与坏账准备（耗时${data.durationMs.toFixed(1)}ms）`,
         });
       } else {
         set({ isLoading: false });
@@ -246,7 +246,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
         set({
           lastExport: res,
           isExporting: false,
-          toastMessage: `导出成功：${res.fileName}（共注入 ${res.formulaCnt} 个 Excel 原生公式，耗时 ${res.durationMs.toFixed(1)} ms）`,
+          toastMessage: `导出成功：${res.fileName}（共注入${res.formulaCnt}个Excel原生公式，耗时${res.durationMs.toFixed(1)}ms）`,
         });
       } else {
         set({ isExporting: false });

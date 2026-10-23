@@ -216,7 +216,7 @@ export interface TierSummaryRow {
 
 // ---- Services ----
 
-/** SmartARService exposes the 5-step AR cleaning, anomaly audit, MyGO!!!!! aging warning, and dynamic formula Excel engine to the frontend. */
+/** SmartARService exposes the 5-step AR cleaning, anomaly audit, aging warning, and dynamic formula Excel engine to the frontend. */
 export const SmartARService = {
   /** ExportExcelReport opens a native Save File dialog and exports the 5-sheet dynamic-formula Excel workbook. */
   exportExcelReport(themeMode: string, asOfDate: string): Promise<ExportResult | null> {

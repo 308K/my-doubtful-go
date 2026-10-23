@@ -3,12 +3,19 @@
 :root {
   color-scheme: light dark;
   font-family: "Inter", "Microsoft YaHei", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+  text-autospace: normal;
+  -webkit-text-autospace: normal;
+}
+
+html, body {
+  text-autospace: normal;
+  -webkit-text-autospace: normal;
 }
 
 /* Custom sleek scrollbars for financial data tables */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -16,10 +23,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.55);
+  background: rgba(148, 163, 184, 0.45);
 }

@@ -76,10 +76,10 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 	hdrSuspColor := "ED7D31"
 	hdrAllColor := "333F48"
 	if useMyGoTheme {
-		hdrMainColor = "3B4252" // Slate dark with MyGO vibe
-		hdrSumColor = "1E3A5F"  // Tomori deep blue
+		hdrMainColor = "3B4252" // Slate dark
+		hdrSumColor = "1E3A5F"  // Deep blue
 		hdrSuspColor = "B45309" // Amber warning
-		hdrAllColor = "3730A3"  // Taki indigo
+		hdrAllColor = "3730A3"  // Indigo
 	}
 
 	stHeaderMain := makeHeaderStyle(hdrMainColor)
@@ -154,18 +154,18 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
 	})
 
-	// Level styles (MyGO!!!!! vs Classic)
+	// Level styles (Soft vs Classic)
 	levelStyles := make(map[string]int)
 	if useMyGoTheme {
-		// PRD Section 3.2: MyGO!!!!! Excel cell fills & fonts
-		mygoExcelPalette := map[string]struct{ fill, font string }{
-			"无":  {"E2F0D9", "385723"}, // 要乐奈 (淡嫩绿 / 深绿加粗)
-			"蓝色": {"DDEBF7", "1F4E79"}, // 高松灯 (浅冰蓝 / 深蓝加粗)
-			"黄色": {"FFF2CC", "833C0C"}, // 长崎素世 (柔和鹅黄 / 褐黄加粗)
-			"橙色": {"E4DFEC", "3B3838"}, // 椎名立希 (冷紫灰 / 冷灰紫加粗)
-			"红色": {"FCE4D6", "C00000"}, // 千早爱音 (警示浅粉 / 警示深红加粗)
+		// Soft Excel cell fills & fonts
+		softExcelPalette := map[string]struct{ fill, font string }{
+			"无":  {"E2F0D9", "385723"}, // 正常 (淡绿 / 深绿加粗)
+			"蓝色": {"DDEBF7", "1F4E79"}, // 关注 (浅冰蓝 / 深蓝加粗)
+			"黄色": {"FFF2CC", "833C0C"}, // 审慎 (柔和鹅黄 / 褐黄加粗)
+			"橙色": {"E4DFEC", "3B3838"}, // 严控 (冷紫灰 / 冷灰紫加粗)
+			"红色": {"FCE4D6", "C00000"}, // 高危 (警示浅粉 / 警示深红加粗)
 		}
-		for lvl, c := range mygoExcelPalette {
+		for lvl, c := range softExcelPalette {
 			st, _ := f.NewStyle(&excelize.Style{
 				Font:      &excelize.Font{Family: "微软雅黑", Size: 10, Bold: true, Color: c.font},
 				Fill:      excelize.Fill{Type: "pattern", Color: []string{c.fill}, Pattern: 1},

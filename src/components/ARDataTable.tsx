@@ -76,7 +76,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
         r.invoiceNo.toLowerCase().includes(q) ||
         r.contractNo.toLowerCase().includes(q) ||
         r.salesperson.toLowerCase().includes(q) ||
-        r.mygoCharacter.toLowerCase().includes(q) ||
+        r.region.toLowerCase().includes(q) ||
         String(r.seq).includes(q)
       );
     });
@@ -166,18 +166,18 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
           const row = info.row.original;
           return (
             <div className="flex flex-col font-mono text-xs">
-              <span className="text-slate-800 dark:text-slate-200">
-                {row.ageDays} 天
+              <span className="text-zinc-800 dark:text-zinc-200">
+                {row.ageDays}天
               </span>
               <span
                 className={`text-[11px] ${
                   row.overdueDays > 0
                     ? "text-amber-600 dark:text-amber-400 font-medium"
-                    : "text-slate-400"
+                    : "text-zinc-400"
                 }`}
               >
                 {row.overdueDays > 0
-                  ? `逾期 ${row.overdueDays} 天`
+                  ? `逾期${row.overdueDays}天`
                   : "未逾期"}
               </span>
             </div>
@@ -185,7 +185,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
         },
       }),
       columnHelper.accessor("agingTier", {
-        header: "账龄分档 & 预警角色",
+        header: "账龄分档 & 预警等级",
         cell: (info) => {
           const row = info.row.original;
           const theme = getThemeByTierOrLevel(row.agingTier);
@@ -193,7 +193,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
             <div className="flex items-center gap-1.5">
               <span
                 className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs border transition-colors ${
-                  paletteMode === "mygo"
+                  paletteMode === "soft"
                     ? theme.badgeClass
                     : theme.classicBadgeClass
                 }`}
@@ -202,14 +202,12 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                   className="w-2 h-2 rounded-full shrink-0"
                   style={{
                     backgroundColor:
-                      paletteMode === "mygo" ? theme.color : theme.classicColor,
+                      paletteMode === "soft" ? theme.color : theme.classicColor,
                   }}
                 />
-                {paletteMode === "mygo"
-                  ? `${theme.character} · ${theme.name}`
-                  : `${theme.classicName}`}
+                {paletteMode === "soft" ? theme.name : theme.classicName}
               </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
                 {row.agingTier}
               </span>
             </div>
@@ -225,8 +223,8 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
               <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">
                 ¥{formatCurrency(row.provisionAmount)}
               </span>
-              <span className="text-[10px] text-slate-400">
-                比例 {(row.provisionRate * 100).toFixed(0)}%
+              <span className="text-[10px] text-zinc-400">
+                比例{(row.provisionRate * 100).toFixed(0)}%
               </span>
             </div>
           );
@@ -242,17 +240,17 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
           return (
             <div className="flex items-center justify-between gap-2">
               {row.isSuspended ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-zinc-100 dark:bg-zinc-800 text-amber-600 dark:text-amber-400 border border-zinc-200 dark:border-zinc-700 font-medium">
                   <AlertTriangle className="w-3 h-3" />
                   {row.suspendType}
                 </span>
               ) : hasRepairs ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                   <Sparkles className="w-3 h-3" />
                   已修补({row.repairedFields.length + row.anomalyTags.length}项)
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
                   <CheckCircle2 className="w-3 h-3" />
                   正常入表
                 </span>
@@ -289,67 +287,67 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 shadow-xs overflow-hidden">
       {/* Toolbar */}
-      <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-lg">
+      <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-lg">
           <button
             onClick={() => onScopeChange("normal")}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
               datasetScope === "normal"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
-            正常入表明细 ({counts.normal}笔)
+            正常入表明细({counts.normal}笔)
           </button>
           <button
             onClick={() => onScopeChange("suspended")}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
               datasetScope === "suspended"
-                ? "bg-amber-500 text-white shadow-2xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900 shadow-2xs"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
-            挂起异常清单 ({counts.suspended}笔)
+            挂起异常清单({counts.suspended}笔)
           </button>
           <button
             onClick={() => onScopeChange("all")}
             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
               datasetScope === "all"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs"
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
             }`}
           >
-            全量数据 ({counts.all}笔)
+            全量数据({counts.all}笔)
           </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Search box */}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="搜索客户/发票号/销售员/角色..."
-              className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/40 w-56"
+              placeholder="搜索客户/发票号/销售员/区域..."
+              className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500/40 w-56"
             />
           </div>
 
           {/* Aging tier filter */}
           <div className="flex items-center gap-1 text-xs">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <Filter className="w-3.5 h-3.5 text-zinc-400" />
             <select
               value={tierFilter}
               onChange={(e) => onTierFilterChange(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-800 dark:text-slate-200 text-xs"
+              className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-800 dark:text-zinc-200 text-xs"
             >
               <option value="ALL">全部账龄区间</option>
-              <option value="1个月以内">1个月以内 (要乐奈·正常)</option>
-              <option value="1-3个月">1-3个月 (高松灯·关注)</option>
-              <option value="3-6个月">3-6个月 (长崎素世·审慎)</option>
-              <option value="6-12个月">6-12个月 (椎名立希·严控)</option>
-              <option value="1年以上">1年以上 (千早爱音·高危)</option>
+              <option value="1个月以内">1个月以内 (正常 · 0-30天)</option>
+              <option value="1-3个月">1-3个月 (关注 · 31-90天)</option>
+              <option value="3-6个月">3-6个月 (审慎 · 91-180天)</option>
+              <option value="6-12个月">6-12个月 (严控 · 181-365天)</option>
+              <option value="1年以上">1年以上 (高危 · 365天以上)</option>
             </select>
           </div>
 
@@ -444,16 +442,16 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
       </div>
 
       {/* Footer status bar */}
-      <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+      <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
         <span>
-          当前显示 <strong>{filteredRecords.length}</strong> 笔记录（点击任意行可穿透查看勾稽关系与 Excel 原生公式）
+          当前显示<strong>{filteredRecords.length}</strong>笔记录（点击任意行可穿透查看勾稽关系与 Excel 原生公式）
         </span>
         <span className="font-mono">
           当前筛选未收余额合计：¥
           {formatCurrency(
             filteredRecords.reduce((acc, r) => acc + r.balanceAmount, 0)
-          )}{" "}
-          | 坏账准备合计：¥
+          )}
+          {" "}| 坏账准备合计：¥
           {formatCurrency(
             filteredRecords.reduce((acc, r) => acc + r.provisionAmount, 0)
           )}
@@ -467,7 +465,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
           onClick={() => setInspectRecord(null)}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden"
+            className="w-full max-w-2xl rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
@@ -477,31 +475,31 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
               return (
                 <>
                   <div
-                    className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between"
+                    className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between"
                     style={{
                       borderLeftWidth: "6px",
                       borderLeftColor:
-                        paletteMode === "mygo"
+                        paletteMode === "soft"
                           ? theme.color
                           : theme.classicColor,
                     }}
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          序号 #{r.seq} (原表第 {r.origRow} 行)
+                        <span className="font-mono text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                          序号 #{r.seq} (原表第{r.origRow}行)
                         </span>
                         <span className={theme.badgeClass + " px-2.5 py-0.5 rounded-full text-xs border"}>
-                          {theme.character} · {theme.name} ({r.agingTier})
+                          {theme.name} ({r.agingTier})
                         </span>
                       </div>
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
+                      <h3 className="text-base font-bold text-zinc-900 dark:text-white mt-1">
                         {r.custName} ({r.custCode})
                       </h3>
                     </div>
                     <button
                       onClick={() => setInspectRecord(null)}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                      className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-700 dark:hover:text-white"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -510,26 +508,26 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                   <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
                     {/* Basic Financial Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60">
-                        <div className="text-slate-400">发票号 / 合同号</div>
-                        <div className="font-mono font-semibold text-slate-900 dark:text-white mt-0.5">
+                      <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">
+                        <div className="text-zinc-400">发票号 / 合同号</div>
+                        <div className="font-mono font-semibold text-zinc-900 dark:text-white mt-0.5">
                           {r.invoiceNo} / {r.contractNo}
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60">
-                        <div className="text-slate-400">开票日 / 约定收款日</div>
-                        <div className="font-mono font-semibold text-slate-900 dark:text-white mt-0.5">
+                      <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">
+                        <div className="text-zinc-400">开票日 / 约定收款日</div>
+                        <div className="font-mono font-semibold text-zinc-900 dark:text-white mt-0.5">
                           {r.invoiceDate} → {r.dueDate}
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60">
-                        <div className="text-slate-400">账龄 / 逾期天数</div>
-                        <div className="font-mono font-semibold text-slate-900 dark:text-white mt-0.5">
-                          {r.ageDays} 天 / 逾期 {r.overdueDays} 天
+                      <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">
+                        <div className="text-zinc-400">账龄 / 逾期天数</div>
+                        <div className="font-mono font-semibold text-zinc-900 dark:text-white mt-0.5">
+                          {r.ageDays}天 / 逾期{r.overdueDays}天
                         </div>
                       </div>
-                      <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60">
-                        <div className="text-slate-400">坏账计提比例 & 金额</div>
+                      <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">
+                        <div className="text-zinc-400">坏账计提比例 & 金额</div>
                         <div className="font-mono font-bold text-rose-600 dark:text-rose-400 mt-0.5">
                           {(r.provisionRate * 100).toFixed(0)}% · ¥
                           {formatCurrency(r.provisionAmount)}
@@ -569,43 +567,43 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                     )}
 
                     {/* Excel Native Formula Penetration Preview */}
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-3.5 space-y-2">
-                      <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                        <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/60 p-3.5 space-y-2">
+                      <div className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                        <FileSpreadsheet className="w-4 h-4 text-zinc-500" />
                         该笔记录导出至 Excel 时的原生动态公式链 (第 {i} 行)
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px]">
-                        <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
-                          <span className="text-slate-400">未收余额 (L{i}): </span>
-                          <span className="text-sky-600 dark:text-sky-400">
+                        <div className="p-2 rounded bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
+                          <span className="text-zinc-400">未收余额 (L{i}): </span>
+                          <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
                             =J{i}-K{i}
                           </span>
                         </div>
-                        <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
-                          <span className="text-slate-400">约定收款日 (N{i}): </span>
-                          <span className="text-sky-600 dark:text-sky-400">
+                        <div className="p-2 rounded bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
+                          <span className="text-zinc-400">约定收款日 (N{i}): </span>
+                          <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
                             =G{i}+M{i}
                           </span>
                         </div>
-                        <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
-                          <span className="text-slate-400">账龄天数 (O{i}): </span>
-                          <span className="text-sky-600 dark:text-sky-400">
+                        <div className="p-2 rounded bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
+                          <span className="text-zinc-400">账龄天数 (O{i}): </span>
+                          <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
                             =&apos;坏账准备与预警分析表&apos;!$B$1-G{i}
                           </span>
                         </div>
-                        <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800">
-                          <span className="text-slate-400">逾期天数 (P{i}): </span>
-                          <span className="text-sky-600 dark:text-sky-400">
+                        <div className="p-2 rounded bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
+                          <span className="text-zinc-400">逾期天数 (P{i}): </span>
+                          <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
                             =MAX(0, &apos;坏账准备与预警分析表&apos;!$B$1-N{i})
                           </span>
                         </div>
-                        <div className="p-2 rounded bg-white dark:bg-slate-900 border border-slate-200/70 dark:border-slate-800 sm:col-span-2">
-                          <span className="text-slate-400">坏账准备 (U{i}): </span>
-                          <span className="text-emerald-600 dark:text-emerald-400">
+                        <div className="p-2 rounded bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800 sm:col-span-2">
+                          <span className="text-zinc-400">坏账准备 (U{i}): </span>
+                          <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
                             =ROUND(L{i}*T{i}, 2)
                           </span>
-                          <span className="text-slate-400 ml-3">建议措施 (W{i}): </span>
-                          <span className="text-purple-600 dark:text-purple-400">
+                          <span className="text-zinc-400 ml-3">建议措施 (W{i}): </span>
+                          <span className="text-zinc-800 dark:text-zinc-200 font-semibold">
                             =VLOOKUP(S{i}, &apos;坏账准备与预警分析表&apos;!$A$3:$J$7, 10, FALSE)
                           </span>
                         </div>
@@ -613,12 +611,12 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                     </div>
 
                     {/* Suggested Management Action */}
-                    <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-800/80 flex items-start justify-between gap-4">
+                    <div className="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-800/80 flex items-start justify-between gap-4">
                       <div>
-                        <div className="text-slate-400 text-[11px]">
-                          催收与信用管控制度建议 ({theme.character} · {theme.metaphor})
+                        <div className="text-zinc-400 text-[11px]">
+                          催收与信用管控制度建议 ({theme.name} · {theme.metaphor})
                         </div>
-                        <div className="font-medium text-slate-900 dark:text-white mt-0.5">
+                        <div className="font-medium text-zinc-900 dark:text-white mt-0.5">
                           {r.suggestedAction}
                         </div>
                       </div>

@@ -76,15 +76,15 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* 1. 账龄结构与坏账准备金字塔图 */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 shadow-xs flex flex-col justify-between">
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-4 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-sky-500" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <BarChart3 className="w-4 h-4 text-zinc-500" />
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               账龄分档与坏账计提金字塔
             </h3>
           </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
             点击条目联动筛选明细
           </span>
         </div>
@@ -92,7 +92,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
         <div className="space-y-2.5 my-auto">
           {tiers.map((tier) => {
             const theme = getThemeByTierOrLevel(tier.agingTier);
-            const barColor = paletteMode === "mygo" ? theme.color : theme.classicColor;
+            const barColor = paletteMode === "soft" ? theme.color : theme.classicColor;
             const balWidthPct = Math.max(4, (tier.balanceSum / maxTierBal) * 100);
             const provWidthPct = Math.max(2, (tier.provisionSum / maxTierBal) * 100);
             const isSelected = activeTier === tier.agingTier;
@@ -105,8 +105,8 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                 }
                 className={`group cursor-pointer rounded-lg p-2 transition-all border ${
                   isSelected
-                    ? "border-sky-500 bg-sky-500/5 dark:bg-sky-500/10"
-                    : "border-transparent hover:border-slate-200 dark:hover:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    ? "border-zinc-900 bg-zinc-900/5 dark:border-zinc-100 dark:bg-zinc-100/10"
+                    : "border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                 }`}
               >
                 <div className="flex items-center justify-between text-xs mb-1">
@@ -115,18 +115,18 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: barColor }}
                     />
-                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                    <span className="font-medium text-zinc-800 dark:text-zinc-200">
                       {tier.agingTier}
                     </span>
-                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                      ({paletteMode === "mygo" ? `${theme.character} · ${theme.name}` : theme.classicName})
+                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                      ({paletteMode === "soft" ? theme.name : theme.classicName})
                     </span>
                   </div>
                   <div className="flex items-center gap-2 font-mono text-[11px]">
-                    <span className="text-slate-600 dark:text-slate-300">
+                    <span className="text-zinc-600 dark:text-zinc-300">
                       {tier.count}笔
                     </span>
-                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                       ¥{(tier.balanceSum / 10000).toFixed(1)}万
                     </span>
                   </div>
@@ -134,7 +134,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
 
                 {/* Dual progress pyramid bars */}
                 <div className="space-y-1">
-                  <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="h-2 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -143,13 +143,13 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                       }}
                     />
                   </div>
-                  <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
-                    <span>计提比例 {(tier.provisionRate * 100).toFixed(0)}%</span>
-                    <span className="font-mono text-rose-600 dark:text-rose-400">
+                  <div className="flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+                    <span>计提比例{(tier.provisionRate * 100).toFixed(0)}%</span>
+                    <span className="font-mono text-zinc-600 dark:text-zinc-300">
                       坏账准备: ¥{formatCurrency(tier.provisionSum)}
                     </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
                     <div
                       className="h-full rounded-full opacity-75 transition-all duration-500"
                       style={{
@@ -166,16 +166,16 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
       </div>
 
       {/* 2. 坏账占比与未收金额双环图 */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 shadow-xs flex flex-col justify-between">
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-4 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-pink-500" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <PieChart className="w-4 h-4 text-zinc-500" />
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               未收余额(外环) vs 坏账准备(内环)结构
             </h3>
           </div>
-          <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-            综合计提率 {formatPercent(data.overallProvRate, 2)}
+          <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
+            综合计提率{formatPercent(data.overallProvRate, 2)}
           </span>
         </div>
 
@@ -186,7 +186,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
               {tiers.map((tier) => {
                 const theme = getThemeByTierOrLevel(tier.agingTier);
                 const strokeColor =
-                  paletteMode === "mygo" ? theme.color : theme.classicColor;
+                  paletteMode === "soft" ? theme.color : theme.classicColor;
                 const dash = tier.balanceRatio * circumferenceOuter;
                 const offset = -accBalRatio * circumferenceOuter;
                 accBalRatio += tier.balanceRatio;
@@ -217,7 +217,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
               {tiers.map((tier) => {
                 const theme = getThemeByTierOrLevel(tier.agingTier);
                 const strokeColor =
-                  paletteMode === "mygo" ? theme.color : theme.classicColor;
+                  paletteMode === "soft" ? theme.color : theme.classicColor;
                 const provRatio = tier.provisionSum / totalProv;
                 const dash = provRatio * circumferenceInner;
                 const offset = -accProvRatio * circumferenceInner;
@@ -247,14 +247,14 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
               })}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] text-zinc-400 uppercase tracking-wider">
                 坏账准备总额
               </span>
-              <span className="text-sm font-bold font-mono text-slate-900 dark:text-white">
+              <span className="text-sm font-bold font-mono text-zinc-900 dark:text-white">
                 ¥{(data.normalProvTotal / 10000).toFixed(2)}万
               </span>
-              <span className="text-[10px] text-rose-500 font-medium">
-                {data.normalCount} 笔正常入表
+              <span className="text-[10px] text-zinc-500 font-medium">
+                {data.normalCount}笔正常入表
               </span>
             </div>
           </div>
@@ -263,7 +263,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
             {tiers.map((tier) => {
               const theme = getThemeByTierOrLevel(tier.agingTier);
               const dotColor =
-                paletteMode === "mygo" ? theme.color : theme.classicColor;
+                paletteMode === "soft" ? theme.color : theme.classicColor;
               const provShare = tier.provisionSum / totalProv;
               return (
                 <div
@@ -273,26 +273,26 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                       activeTier === tier.agingTier ? "ALL" : tier.agingTier
                     )
                   }
-                  className="flex items-center justify-between px-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800/60 cursor-pointer"
+                  className="flex items-center justify-between px-2 py-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/60 cursor-pointer"
                 >
                   <div className="flex items-center gap-1.5">
                     <span
                       className="w-2.5 h-2.5 rounded-xs shrink-0"
                       style={{ backgroundColor: dotColor }}
                     />
-                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {paletteMode === "mygo" ? theme.character : tier.agingTier}
+                    <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                      {tier.agingTier} ({theme.name})
                     </span>
                   </div>
                   <div className="flex items-center gap-2 font-mono text-[11px]">
                     <span
-                      className="text-slate-500 dark:text-slate-400"
+                      className="text-zinc-500 dark:text-zinc-400"
                       title="占未收余额比"
                     >
                       余额{formatPercent(tier.balanceRatio)}
                     </span>
                     <span
-                      className="font-semibold text-slate-800 dark:text-slate-200"
+                      className="font-semibold text-zinc-800 dark:text-zinc-200"
                       title="占坏账准备总额比"
                     >
                       坏账{formatPercent(provShare)}
@@ -304,22 +304,22 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
           </div>
         </div>
 
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
           <span>外环：各档未收余额占比</span>
           <span>内环：各档计提坏账贡献度</span>
         </div>
       </div>
 
       {/* 3. 区域敞口雷达与回款率矩阵 */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 shadow-xs flex flex-col justify-between">
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-4 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-emerald-500" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <Compass className="w-4 h-4 text-zinc-500" />
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               七大区域风险敞口与回款雷达图
             </h3>
           </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400">
+          <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
             点击区域筛选
           </span>
         </div>
@@ -414,20 +414,20 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                   }
                   className={`flex items-center justify-between px-2 py-1 rounded-md cursor-pointer transition-colors ${
                     isSelected
-                      ? "bg-sky-500/15 text-sky-600 dark:text-sky-300 font-semibold"
-                      : "hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300"
+                      ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-semibold"
+                      : "hover:bg-zinc-100 dark:hover:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300"
                   }`}
                 >
                   <span>
-                    {r.region}{" "}
-                    <span className="text-[10px] text-slate-400">
+                    {r.region}
+                    <span className="text-[10px] text-zinc-400 ml-1">
                       ({r.recordCount}笔)
                     </span>
                   </span>
                   <div className="text-right font-mono text-[11px]">
                     <div>¥{(r.balanceTotal / 10000).toFixed(1)}万</div>
-                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                      回款率 {formatPercent(r.collectionRate, 0)}
+                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      回款率{formatPercent(r.collectionRate, 0)}
                     </div>
                   </div>
                 </div>
@@ -436,14 +436,14 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
           </div>
         </div>
 
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-[#77BBDD]" />
-            高松灯蓝：未收余额规模
+            未收余额规模
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-[#77DD77]" />
-            要乐奈绿：区域回款率
+            区域回款率
           </span>
         </div>
       </div>

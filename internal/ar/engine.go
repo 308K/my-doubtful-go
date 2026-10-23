@@ -41,7 +41,7 @@ var DefaultCustomerStandards = []CustomerStandard{
 	{Code: "CUST020", Name: "重庆巴山机械有限公司", Region: "西南", Credit: "B", Aliases: []string{"巴山机械", "重庆巴山"}},
 }
 
-// DefaultTierConfigs holds the 5-tier aging & bad debt matrix integrated with MyGO!!!!! character themes.
+// DefaultTierConfigs holds the 5-tier aging & bad debt matrix.
 var DefaultTierConfigs = []TierConfig{
 	{
 		Name:            "1个月以内",
@@ -51,13 +51,13 @@ var DefaultTierConfigs = []TierConfig{
 		Rate:            0.01,
 		ClassicLevel:    "无",
 		MyGoLevel:       "正常",
-		Character:       "要乐奈",
+		Character:       "正常",
 		ColorHex:        "#77DD77",
 		SoftTintHex:     "#F0FDF4",
 		TextColorHex:    "#15803D",
 		ExcelFillHex:    "E2F0D9",
 		ExcelFontHex:    "385723",
-		Metaphor:        "自由随性、健康无碍，资金流转顺畅",
+		Metaphor:        "资金流转顺畅、风险低",
 		SuggestedAction: "正常管理",
 	},
 	{
@@ -68,13 +68,13 @@ var DefaultTierConfigs = []TierConfig{
 		Rate:            0.05,
 		ClassicLevel:    "蓝色",
 		MyGoLevel:       "关注",
-		Character:       "高松灯",
+		Character:       "关注",
 		ColorHex:        "#77BBDD",
 		SoftTintHex:     "#F0F9FF",
 		TextColorHex:    "#0369A1",
 		ExcelFillHex:    "DDEBF7",
 		ExcelFontHex:    "1F4E79",
-		Metaphor:        "心怀忐忑、声声呼唤，需要跟催回款",
+		Metaphor:        "跟进日常回款进度",
 		SuggestedAction: "关注回款进度；纳入月度回款计划",
 	},
 	{
@@ -85,13 +85,13 @@ var DefaultTierConfigs = []TierConfig{
 		Rate:            0.20,
 		ClassicLevel:    "黄色",
 		MyGoLevel:       "审慎",
-		Character:       "长崎素世",
+		Character:       "审慎",
 		ColorHex:        "#FFDD88",
 		SoftTintHex:     "#FEFCE8",
 		TextColorHex:    "#A16207",
 		ExcelFillHex:    "FFF2CC",
 		ExcelFontHex:    "833C0C",
-		Metaphor:        "试图维系、对账函证，关注资金链状态",
+		Metaphor:        "函证核对、关注资金状况",
 		SuggestedAction: "电话 / 邮件催收；寄送对账单确认债权；关注客户资金状况",
 	},
 	{
@@ -102,13 +102,13 @@ var DefaultTierConfigs = []TierConfig{
 		Rate:            0.50,
 		ClassicLevel:    "橙色",
 		MyGoLevel:       "严控",
-		Character:       "椎名立希",
+		Character:       "严控",
 		ColorHex:        "#7777AA",
 		SoftTintHex:     "#F5F3FF",
 		TextColorHex:    "#5B21B6",
 		ExcelFillHex:    "E4DFEC",
 		ExcelFontHex:    "3B3838",
-		Metaphor:        "压力骤增、严肃应对，专人重拳管控",
+		Metaphor:        "压力上升、专人重点管控",
 		SuggestedAction: "指定专人跟进催收；下调信用额度；暂停新增赊销；复核合同与对账单",
 	},
 	{
@@ -119,13 +119,13 @@ var DefaultTierConfigs = []TierConfig{
 		Rate:            1.00,
 		ClassicLevel:    "红色",
 		MyGoLevel:       "高危",
-		Character:       "千早爱音",
+		Character:       "高危",
 		ColorHex:        "#FF8899",
 		SoftTintHex:     "#FFF1F2",
 		TextColorHex:    "#BE123C",
 		ExcelFillHex:    "FCE4D6",
 		ExcelFontHex:    "C00000",
-		Metaphor:        "醒目警报、法务出击，全额计提绝境破局",
+		Metaphor:        "重大逾期风险、专项催收与法务介入",
 		SuggestedAction: "立即启动专项催收；评估诉讼时效并考虑法务介入；暂停发货并要求预付款；全额计提坏账准备",
 	},
 }
@@ -889,7 +889,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 		}
 
 		// =====================================================================
-		// Step 4: 账龄测算与坏账准备计提 + MyGO!!!!! 预警角色映射
+		// Step 4: 账龄测算与坏账准备计提 + 预警等级映射
 		// =====================================================================
 		tier := getTierInfo(ageDays)
 		effBal := balAmt
@@ -1065,7 +1065,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CreditLevel:   r.CreditLevel,
 				TermModeDays:  termMode,
 				HighestRisk:   "正常",
-				MyGoCharacter: "要乐奈",
+				MyGoCharacter: "正常",
 				MyGoColor:     "#77DD77",
 			}
 			custStats[r.CustCode] = cs

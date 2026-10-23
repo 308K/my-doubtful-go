@@ -33,7 +33,7 @@ type SystemInfo struct {
 	Engine     string `json:"engine"`
 }
 
-// SmartARService exposes the 5-step AR cleaning, anomaly audit, MyGO!!!!! aging warning, and dynamic formula Excel engine to the frontend.
+// SmartARService exposes the 5-step AR cleaning, anomaly audit, aging warning, and dynamic formula Excel engine to the frontend.
 type SmartARService struct {
 	mu         sync.Mutex
 	lastBytes  []byte
@@ -48,7 +48,7 @@ func (s *SmartARService) GetSystemInfo() SystemInfo {
 		Arch:       runtime.GOARCH,
 		GoVersion:  runtime.Version(),
 		AppVersion: "1.1.0",
-		Engine:     "MyGo v0.6 + Excelize v2 (Pure Go / No CGo)",
+		Engine:     "Pure Go + Excelize v2 (No CGo)",
 	}
 }
 
@@ -172,9 +172,9 @@ func (s *SmartARService) ExportExcelReport(ctx context.Context, themeMode string
 		}
 	}
 
-	suffix := "MyGO潮流色卡版"
+	suffix := "柔和预警色卡版"
 	if themeMode == "classic" {
-		suffix = "标准财务色卡版"
+		suffix = "经典预警色卡版"
 	}
 	defaultName := fmt.Sprintf("应收账款明细表_清洗后_动态公式_%s.xlsx", suffix)
 
@@ -211,9 +211,9 @@ func (s *SmartARService) QuickExportToWorkspace(themeMode string, asOfDate strin
 		}
 	}
 
-	suffix := "MyGO色卡"
+	suffix := "柔和预警色"
 	if themeMode == "classic" {
-		suffix = "标准财务"
+		suffix = "经典预警色"
 	}
 	outName := fmt.Sprintf("应收账款智能分析报表_动态公式_%s.xlsx", suffix)
 
@@ -244,7 +244,7 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		mygo.NewWindow(mygo.WindowOptions{
-			Title:           "SmartAR Desktop — 智能应收账款账龄分析与坏账预警工作台 (MyGO!!!!! Edition)",
+			Title:           "SmartAR Desktop — 智能应收账款账龄分析与坏账预警系统",
 			Width:           1440,
 			Height:          900,
 			MinWidth:        1080,
