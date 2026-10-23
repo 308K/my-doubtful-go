@@ -1,6 +1,6 @@
 module my-doubtful-go
 
-go 1.27.1
+go 1.27
 
 require github.com/egoist/mygo v0.6.3
 
