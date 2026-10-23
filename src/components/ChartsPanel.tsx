@@ -171,7 +171,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
           <div className="flex items-center gap-2">
             <PieChart className="w-4 h-4 text-zinc-500" />
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              未收余额(外环) vs 坏账准备(内环)结构
+              未收余额(外环)与坏账准备(内环)结构
             </h3>
           </div>
           <span className="text-[11px] font-mono text-zinc-500 dark:text-zinc-400">
@@ -338,7 +338,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                 r={radarRadius * scale}
                 fill="none"
                 stroke="currentColor"
-                className="text-slate-200 dark:text-slate-800"
+                className="text-zinc-200 dark:text-zinc-800"
                 strokeDasharray="2 2"
               />
             ))}
@@ -351,7 +351,7 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                 x2={p.axisX}
                 y2={p.axisY}
                 stroke="currentColor"
-                className="text-slate-200 dark:text-slate-800"
+                className="text-zinc-200 dark:text-zinc-800"
               />
             ))}
             {/* Balance polygon */}
@@ -392,8 +392,8 @@ export const ChartsPanel: React.FC<ChartsPanelProps> = ({
                     dominantBaseline="central"
                     className={`text-[10px] font-medium fill-current ${
                       isSelected
-                        ? "text-sky-500 font-bold"
-                        : "text-slate-600 dark:text-slate-300"
+                        ? "text-zinc-900 dark:text-zinc-100 font-bold"
+                        : "text-zinc-600 dark:text-zinc-400"
                     }`}
                   >
                     {p.region}

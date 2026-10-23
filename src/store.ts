@@ -90,6 +90,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
     set((s) => {
       const next = !s.darkMode;
       document.documentElement.classList.toggle("dark", next);
+      document.documentElement.style.colorScheme = next ? "dark" : "light";
       return { darkMode: next };
     }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
@@ -101,6 +102,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
 
   initApp: async () => {
     document.documentElement.classList.add("dark");
+    document.documentElement.style.colorScheme = "dark";
     if (!isMyGo()) {
       set({
         error: "当前运行在浏览器预览模式，请通过桌面端运行以启用Go内核计算能力。",

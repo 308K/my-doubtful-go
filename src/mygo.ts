@@ -254,4 +254,8 @@ export const SmartARService = {
   revealFileInFolder(filePath: string): Promise<void> {
     return call("SmartARService.RevealFileInFolder", filePath);
   },
+  /** ToggleDevTools toggles the developer tools inspector window for debugging. */
+  toggleDevTools(): Promise<void> {
+    return call("SmartARService.ToggleDevTools");
+  },
 } as const;

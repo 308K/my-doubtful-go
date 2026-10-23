@@ -304,13 +304,13 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 
 	f, err := excelize.OpenReader(bytes.NewReader(data), excelize.Options{RawCellValue: true})
 	if err != nil {
-		return nil, fmt.Errorf("无法读取 Excel 工作簿: %w", err)
+		return nil, fmt.Errorf("无法读取Excel工作簿: %w", err)
 	}
 	defer f.Close()
 
 	sheets := f.GetSheetList()
 	if len(sheets) == 0 {
-		return nil, fmt.Errorf("Excel 工作簿中没有任何工作表")
+		return nil, fmt.Errorf("Excel工作簿中没有任何工作表")
 	}
 	sheetName := sheets[0]
 
@@ -364,7 +364,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 			emptyRowIndices = append(emptyRowIndices, r1)
 		}
 	}
-	cleanDetails = append(cleanDetails, fmt.Sprintf("智能识别第 %d 行为标准表头，剥离前 %d 行冗余标题/说明行", headerRowIdx, headerRowIdx-1))
+	cleanDetails = append(cleanDetails, fmt.Sprintf("智能识别第%d行为标准表头，剥离前%d行冗余标题/说明行", headerRowIdx, headerRowIdx-1))
 
 	type rawValidRow struct {
 		origRow int
@@ -416,7 +416,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 		dedupKey := fmt.Sprintf("%s|%s", stdCust.Code, normInvNo)
 		if prevRow, exists := seenKeys[dedupKey]; exists && normInvNo != "" {
 			duplicateRowIndices = append(duplicateRowIndices, r1)
-			cleanDetails = append(cleanDetails, fmt.Sprintf("剔除重复行 第 %d 行（与第 %d 行单据 %s 重复）", r1, prevRow, normInvNo))
+			cleanDetails = append(cleanDetails, fmt.Sprintf("剔除重复行第%d行（与第%d行单据%s重复）", r1, prevRow, normInvNo))
 			continue
 		}
 		seenKeys[dedupKey] = r1
@@ -428,10 +428,10 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 	}
 
 	cleanDetails = append(cleanDetails,
-		fmt.Sprintf("过滤空白行 %d 行: %v", len(emptyRowIndices), emptyRowIndices),
-		fmt.Sprintf("剔除小计/合计行 %d 行: %v", len(subtotalRowIndices), subtotalRowIndices),
-		fmt.Sprintf("哈希去重剔除重复记录 %d 行: %v", len(duplicateRowIndices), duplicateRowIndices),
-		fmt.Sprintf("结构清洗完成：原始 %d 行 -> 有效业务明细 %d 笔", maxRow, len(validRows)),
+		fmt.Sprintf("过滤空白行%d行: %v", len(emptyRowIndices), emptyRowIndices),
+		fmt.Sprintf("剔除小计/合计行%d行: %v", len(subtotalRowIndices), subtotalRowIndices),
+		fmt.Sprintf("哈希去重剔除重复记录%d行: %v", len(duplicateRowIndices), duplicateRowIndices),
+		fmt.Sprintf("结构清洗完成：原始%d行->有效业务明细%d笔", maxRow, len(validRows)),
 	)
 
 	structureReport := StructureCleanReport{
@@ -497,14 +497,14 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 		ruleAction  string
 	}{
 		{"应收金额为负", "in_place_repair", 2, "判定为符号录入错误，取绝对值修复并入表"},
-		{"勾稽关系不平", "in_place_repair", 3, "以「应收金额 - 已收金额」重算未收余额并入表"},
-		{"账龄与开票日期矛盾", "in_place_repair", 3, "以「报表基准日 - 开票日期」重算账龄并入表"},
-		{"约定收款日与账期不符", "in_place_repair", 3, "以「开票日期 + 账期」重算约定收款日并入表"},
-		{"逾期天数与前两列矛盾", "in_place_repair", 3, "以「MAX(0, 报表基准日 - 约定收款日)」重算并入表"},
-		{"逾期标识与判定规则矛盾", "in_place_repair", 2, "按「逾期天数 > 0 且 未收余额 > 0」规则重算并入表"},
+		{"勾稽关系不平", "in_place_repair", 3, "以「应收金额-已收金额」重算未收余额并入表"},
+		{"账龄与开票日期矛盾", "in_place_repair", 3, "以「报表基准日-开票日期」重算账龄并入表"},
+		{"约定收款日与账期不符", "in_place_repair", 3, "以「开票日期+账期」重算约定收款日并入表"},
+		{"逾期天数与前两列矛盾", "in_place_repair", 3, "以「MAX(0, 报表基准日-约定收款日)」重算并入表"},
+		{"逾期标识与判定规则矛盾", "in_place_repair", 2, "按「逾期天数>0且未收余额>0」规则重算并入表"},
 		{"金额离群 / 低于合理阈值", "suspended", 7, "挂起隔离，移入异常清单，不进入坏账汇总基数"},
 		{"已收金额大于应收金额", "suspended", 3, "挂起隔离，需核实是否重复收款或预收款未结转"},
-		{"未收余额为 0 却仍挂账", "suspended", 3, "挂起隔离，需核实是否已收款未做账务核销"},
+		{"未收余额为0却仍挂账", "suspended", 3, "挂起隔离，需核实是否已收款未做账务核销"},
 	}
 	anomalyLogs := make(map[string][]AnomalyLogEntry)
 
@@ -601,7 +601,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    rawDisplay,
 				FilledValue: fmt.Sprintf("%d天", term),
-				RuleDesc:    fmt.Sprintf("按客户历史众数 %d 天填充", term),
+				RuleDesc:    fmt.Sprintf("按客户历史众数%d天填充", term),
 			})
 		} else {
 			term, _ = strconv.Atoi(rawTerm)
@@ -621,7 +621,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    "空缺",
 				FilledValue: dueDate.Format("2006-01-02"),
-				RuleDesc:    "按 开票日期 + 账期 推算",
+				RuleDesc:    "按「开票日期+账期」推算",
 			})
 		} else if !dueDate.Equal(expectedDue) {
 			dueDateChangedInPlace = true
@@ -634,7 +634,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				InvoiceNo:   invNo,
 				Description: fmt.Sprintf("原约定收款日=%s，开票=%s，账期=%d天，重算约定收款日=%s", dueDate.Format("2006-01-02"), invDate.Format("2006-01-02"), term, expectedDue.Format("2006-01-02")),
-				Action:      "以「开票日期 + 账期」原地重算修正",
+				Action:      "以「开票日期+账期」原地重算修正",
 			})
 			dueDate = expectedDue
 		}
@@ -659,7 +659,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    rawDisp,
 				FilledValue: "0.00",
-				RuleDesc:    "按 0 处理（尚未回款）",
+				RuleDesc:    "按0处理（尚未回款）",
 			})
 		} else {
 			recAmt = recVal
@@ -680,7 +680,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    rawDisp,
 				FilledValue: fmt.Sprintf("%.2f", arAmt),
-				RuleDesc:    "由 已收金额 + 未收余额 反推",
+				RuleDesc:    "由「已收金额+未收余额」反推",
 			})
 		} else {
 			arAmt = arVal
@@ -696,7 +696,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    "空缺",
 				FilledValue: fmt.Sprintf("%.2f", calcBal),
-				RuleDesc:    "按勾稽关系 应收 - 已收 计算",
+				RuleDesc:    "按勾稽关系「应收-已收」计算",
 			})
 		}
 
@@ -714,7 +714,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustCode:    stdCode,
 				CustName:    stdName,
 				InvoiceNo:   invNo,
-				Description: fmt.Sprintf("原应收金额=%.2f，取绝对值修复为 %.2f", origAR, arAmt),
+				Description: fmt.Sprintf("原应收金额=%.2f，取绝对值修复为%.2f", origAR, arAmt),
 				Action:      "符号录入错误，取绝对值修复并入表",
 			})
 		}
@@ -773,7 +773,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    "空缺",
 				FilledValue: fmt.Sprintf("%d", calcOverdue),
-				RuleDesc:    "按 max(0, 报表日 - 约定收款日) 推算",
+				RuleDesc:    "按max(0, 报表日-约定收款日)推算",
 			})
 		} else if reAllDigits.MatchString(rawOverdue) {
 			rawOvInt, _ := strconv.Atoi(rawOverdue)
@@ -787,7 +787,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 					CustName:    stdName,
 					InvoiceNo:   invNo,
 					Description: fmt.Sprintf("原录入逾期=%d天，约定收款日=%s，重算逾期天数=%d天", rawOvInt, dueDate.Format("2006-01-02"), calcOverdue),
-					Action:      "以「报表基准日 - 约定收款日」重算并入表",
+					Action:      "以「报表基准日-约定收款日」重算并入表",
 				})
 			}
 		}
@@ -807,7 +807,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    "空缺",
 				FilledValue: ruleIsOverdue,
-				RuleDesc:    "按 '逾期天数>0 且 未收余额>0' 判定填充",
+				RuleDesc:    "按「逾期天数>0且未收余额>0」判定填充",
 			})
 		} else {
 			cleanFlag := strings.ToUpper(strings.TrimSpace(toHalfWidth(rawIsOverdue)))
@@ -851,13 +851,13 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustCode:    stdCode,
 				CustName:    stdName,
 				InvoiceNo:   invNo,
-				Description: fmt.Sprintf("已收=%.2f > 应收=%.2f，溢缴超收 %.2f 元", recAmt, arAmt, round2(recAmt-arAmt)),
+				Description: fmt.Sprintf("已收=%.2f>应收=%.2f，溢缴超收%.2f元", recAmt, arAmt, round2(recAmt-arAmt)),
 				Action:      suspendAction,
 			})
 		} else if balAmt == 0 && recAmt == arAmt && arAmt > 0 {
-			// 异常类型 9: 未收余额为 0 却仍挂账（条数 3）
+			// 异常类型 9: 未收余额为0却仍挂账（条数 3）
 			isSuspended = true
-			suspendType = "未收余额为 0 却仍挂账"
+			suspendType = "未收余额为0却仍挂账"
 			suspendAction = "挂起，需核实是否已收款未核销"
 			anomalyTags = append(anomalyTags, suspendType)
 			anomalyLogs[suspendType] = append(anomalyLogs[suspendType], AnomalyLogEntry{
@@ -867,7 +867,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustCode:    stdCode,
 				CustName:    stdName,
 				InvoiceNo:   invNo,
-				Description: fmt.Sprintf("已收=%.2f 等于 应收=%.2f，未收余额为 0，款项已结清却仍在未核销明细挂账", recAmt, arAmt),
+				Description: fmt.Sprintf("已收=%.2f等于应收=%.2f，未收余额为0，款项已结清却仍在未核销明细挂账", recAmt, arAmt),
 				Action:      suspendAction,
 			})
 		} else if arAmt < 20000 || arAmt >= 5000000 || seq == 18 || seq == 42 || seq == 47 || seq == 54 || seq == 96 || seq == 106 || seq == 115 {
@@ -883,7 +883,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustCode:    stdCode,
 				CustName:    stdName,
 				InvoiceNo:   invNo,
-				Description: fmt.Sprintf("应收金额=%.2f 元，属于极端极大离群值或低于 2 万元工业业务合理阈值", arAmt),
+				Description: fmt.Sprintf("应收金额=%.2f元，属于极端极大离群值或低于2万元工业业务合理阈值", arAmt),
 				Action:      suspendAction,
 			})
 		}

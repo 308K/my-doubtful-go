@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+*, *::before, *::after {
+  text-autospace: normal;
+  -webkit-text-autospace: normal;
+}
+
 :root {
   color-scheme: light dark;
   font-family: "Inter", "Microsoft YaHei", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -12,7 +19,7 @@ html, body {
   -webkit-text-autospace: normal;
 }
 
-/* Custom sleek scrollbars for financial data tables */
+/* Custom sleek scrollbars for financial data tables (Neutral Zinc Theme) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -23,10 +30,10 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(161, 161, 170, 0.25);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(161, 161, 170, 0.45);
 }

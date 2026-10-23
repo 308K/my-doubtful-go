@@ -178,3 +178,27 @@ export function formatCurrency(val: number): string {
 export function formatPercent(ratio: number, digits = 1): string {
   return `${(ratio * 100).toFixed(digits)}%`;
 }
+
+/**
+ * 按照当前系统 locale 格式化日期字符串 (YYYY-MM-DD)
+ */
+export function formatSystemDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return dateStr;
+  const date = new Date(y, m - 1, d);
+  try {
+    return new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return dateStr;
+  }
+}
+

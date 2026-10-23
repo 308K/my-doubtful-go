@@ -14,6 +14,7 @@ import {
 import type { ARRecord } from "../mygo";
 import {
   formatCurrency,
+  formatSystemDate,
   getThemeByTierOrLevel,
   type PaletteMode,
 } from "../theme";
@@ -87,7 +88,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
       columnHelper.accessor("seq", {
         header: "序号",
         cell: (info) => (
-          <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
+          <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
             #{info.getValue()}
           </span>
         ),
@@ -100,19 +101,19 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
           return (
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="font-medium text-slate-900 dark:text-slate-100 text-xs">
+                <span className="font-medium text-zinc-900 dark:text-zinc-100 text-xs">
                   {row.custName}
                 </span>
                 {aliasFixed && (
                   <span
-                    className="px-1 py-0.2 text-[10px] rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20"
+                    className="px-1 py-0.2 text-[10px] rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700"
                     title={`原表简称: ${row.rawCustName}`}
                   >
                     已对齐标准名
                   </span>
                 )}
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
+              <span className="text-[11px] font-mono text-zinc-400">
                 {row.custCode} · {row.region} · 信用{row.creditLevel}级 ·{" "}
                 {row.salesperson}
               </span>
@@ -126,11 +127,11 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
           const row = info.row.original;
           return (
             <div className="flex flex-col font-mono text-xs">
-              <span className="text-slate-800 dark:text-slate-200">
+              <span className="text-zinc-800 dark:text-zinc-200">
                 {row.invoiceNo}
               </span>
-              <span className="text-[11px] text-slate-400">
-                开票:{row.invoiceDate} (账期{row.creditTermDays}天)
+              <span className="text-[11px] text-zinc-400">
+                开票:{formatSystemDate(row.invoiceDate)} (账期{row.creditTermDays}天)
               </span>
             </div>
           );
@@ -139,7 +140,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
       columnHelper.accessor("arAmount", {
         header: "应收金额(元)",
         cell: (info) => (
-          <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
+          <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">
             ¥{formatCurrency(info.getValue())}
           </span>
         ),
@@ -155,7 +156,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
       columnHelper.accessor("balanceAmount", {
         header: "未收余额(元)",
         cell: (info) => (
-          <span className="font-mono text-xs font-semibold text-slate-900 dark:text-white">
+          <span className="font-mono text-xs font-semibold text-zinc-900 dark:text-white">
             ¥{formatCurrency(info.getValue())}
           </span>
         ),
@@ -262,8 +263,8 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                     excelRow: info.row.index + 2,
                   })
                 }
-                className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 transition-colors"
-                title="穿透复核单笔勾稽与 Excel 公式链"
+                className="p-1 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-300 transition-colors"
+                title="穿透复核单笔勾稽与Excel公式链"
               >
                 <Eye className="w-3.5 h-3.5" />
               </button>
@@ -285,7 +286,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
   });
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 shadow-xs overflow-hidden">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-xs overflow-hidden">
       {/* Toolbar */}
       <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-lg">
@@ -355,7 +356,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
           <select
             value={regionFilter}
             onChange={(e) => onRegionFilterChange(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-800 dark:text-slate-200 text-xs"
+            className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-800 dark:text-zinc-200 text-xs"
           >
             <option value="ALL">全部区域</option>
             <option value="华东">华东</option>
@@ -385,14 +386,14 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
       {/* Table container */}
       <div className="max-h-[440px] overflow-auto">
         <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur-xs border-b border-slate-200 dark:border-slate-700">
+          <thead className="sticky top-0 z-10 bg-zinc-100/95 dark:bg-zinc-900/95 backdrop-blur-xs border-b border-zinc-200 dark:border-zinc-800">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => (
                   <th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
-                    className="px-3 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-300 select-none cursor-pointer hover:text-slate-900 dark:hover:text-white whitespace-nowrap"
+                    className="px-3 py-2.5 text-xs font-semibold text-zinc-600 dark:text-zinc-300 select-none cursor-pointer hover:text-zinc-900 dark:hover:text-white whitespace-nowrap"
                   >
                     <div className="flex items-center gap-1">
                       {flexRender(
@@ -408,7 +409,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70">
+          <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800/70">
             {table.getRowModel().rows.map((row) => (
               <tr
                 key={row.id}
@@ -418,7 +419,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                     excelRow: row.index + 2,
                   })
                 }
-                className="hover:bg-slate-50/90 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
+                className="hover:bg-zinc-50 dark:hover:bg-zinc-900/60 cursor-pointer transition-colors"
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id} className="px-3 py-2 whitespace-nowrap">
@@ -431,7 +432,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="py-10 text-center text-xs text-slate-400"
+                  className="py-10 text-center text-xs text-zinc-400"
                 >
                   未找到符合当前筛选条件的应收账款记录
                 </td>
@@ -444,7 +445,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
       {/* Footer status bar */}
       <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
         <span>
-          当前显示<strong>{filteredRecords.length}</strong>笔记录（点击任意行可穿透查看勾稽关系与 Excel 原生公式）
+          当前显示<strong>{filteredRecords.length}</strong>笔记录（点击任意行可穿透查看勾稽关系与Excel原生公式）
         </span>
         <span className="font-mono">
           当前筛选未收余额合计：¥
@@ -545,20 +546,20 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                           数据治理与勾稽审计轨迹
                         </div>
                         {r.rawCustName !== r.custName && (
-                          <div className="text-slate-600 dark:text-slate-300">
+                          <div className="text-zinc-600 dark:text-zinc-300">
                             • <strong>客户主数据对齐</strong>：原表录入「
                             {r.rawCustName} ({r.rawCustCode})」→ 映射标准档案「
                             {r.custName} ({r.custCode})」
                           </div>
                         )}
                         {r.repairedFields.length > 0 && (
-                          <div className="text-slate-600 dark:text-slate-300">
+                          <div className="text-zinc-600 dark:text-zinc-300">
                             • <strong>缺失值智能修补字段</strong>：
                             {r.repairedFields.join("、")}
                           </div>
                         )}
                         {r.anomalyTags.length > 0 && (
-                          <div className="text-slate-600 dark:text-slate-300">
+                          <div className="text-zinc-600 dark:text-zinc-300">
                             • <strong>异常识别与处置标签</strong>：
                             {r.anomalyTags.join("、")}（{r.dataStatus}）
                           </div>
@@ -570,7 +571,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/60 p-3.5 space-y-2">
                       <div className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                         <FileSpreadsheet className="w-4 h-4 text-zinc-500" />
-                        该笔记录导出至 Excel 时的原生动态公式链 (第 {i} 行)
+                        该笔记录导出至Excel时的原生动态公式链（第{i}行）
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px]">
                         <div className="p-2 rounded bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">

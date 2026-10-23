@@ -653,7 +653,7 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 	}
 
 	if err := f.SaveAs(outPath); err != nil {
-		return nil, fmt.Errorf("保存 Excel 文件失败: %w", err)
+		return nil, fmt.Errorf("保存Excel文件失败: %w", err)
 	}
 
 	fi, _ := os.Stat(outPath)

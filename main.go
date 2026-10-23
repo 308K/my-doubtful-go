@@ -74,9 +74,9 @@ func (s *SmartARService) LoadBuiltInSample(asOfDate string) (*ar.PipelineResult,
 func (s *SmartARService) OpenAndProcessFile(ctx context.Context, asOfDate string) (*ar.PipelineResult, error) {
 	paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
 		Parent: mygo.CallerWindow(ctx),
-		Title:  "选择应收账款原始 Excel 明细表",
+		Title:  "选择应收账款原始Excel明细表",
 		Filters: []mygo.FileFilter{
-			{Name: "Excel 工作簿 (*.xlsx)", Extensions: []string{"xlsx", "xlsm"}},
+			{Name: "Excel工作簿 (*.xlsx)", Extensions: []string{"xlsx", "xlsm"}},
 		},
 		Multiple: false,
 	})
@@ -180,10 +180,10 @@ func (s *SmartARService) ExportExcelReport(ctx context.Context, themeMode string
 
 	savePath, err := mygo.Dialog.Save(mygo.SaveDialogOptions{
 		Parent:      mygo.CallerWindow(ctx),
-		Title:       "导出保留全套动态公式的 Excel 财务工作簿",
+		Title:       "导出保留全套动态公式的Excel财务工作簿",
 		DefaultPath: defaultName,
 		Filters: []mygo.FileFilter{
-			{Name: "Excel 工作簿 (*.xlsx)", Extensions: []string{"xlsx"}},
+			{Name: "Excel工作簿 (*.xlsx)", Extensions: []string{"xlsx"}},
 		},
 	})
 	if err != nil || savePath == "" {
@@ -232,6 +232,14 @@ func (s *SmartARService) RevealFileInFolder(filePath string) {
 	mygo.Shell.ShowItemInFolder(filePath)
 }
 
+// ToggleDevTools toggles the developer tools inspector window for debugging.
+func (s *SmartARService) ToggleDevTools(ctx context.Context) {
+	win := mygo.CallerWindow(ctx)
+	if win != nil && win.Page() != nil {
+		win.Page().ToggleDevTools()
+	}
+}
+
 func main() {
 	svc := &SmartARService{}
 	mygo.Bind(svc)
@@ -244,14 +252,17 @@ func main() {
 
 	mygo.App.WhenReady(func() {
 		mygo.NewWindow(mygo.WindowOptions{
-			Title:           "SmartAR Desktop — 智能应收账款账龄分析与坏账预警系统",
+			Title:           "SmartAR Desktop—智能应收账款账龄分析与坏账预警系统",
 			Width:           1440,
 			Height:          900,
 			MinWidth:        1080,
 			MinHeight:       700,
-			BackgroundColor: "light-dark(#f8fafc, #090d16)",
+			BackgroundColor: "light-dark(#ffffff, #09090b)",
 			StateKey:        "smartar-main",
 			URL:             "/",
+			Page: mygo.PageOptions{
+				DevTools: mygo.DevToolsEnabled,
+			},
 		})
 	})
 

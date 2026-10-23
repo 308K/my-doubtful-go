@@ -4,10 +4,12 @@
 
 import React, { useEffect } from "react";
 import { isMyGo, onFileDrop } from "mygo-runtime";
+import { SmartARService } from "./mygo";
 import { useSmartARStore, type ActiveStep } from "./store";
 import {
   formatCurrency,
   formatPercent,
+  formatSystemDate,
   getThemeByTierOrLevel,
   RISK_THEME_LIST,
 } from "./theme";
@@ -124,7 +126,17 @@ export const App: React.FC = () => {
           void loadFromFilePath(xlsxPath);
         }
       });
-      return () => off();
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "F12" || (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i"))) {
+          e.preventDefault();
+          void SmartARService.toggleDevTools();
+        }
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        off();
+        window.removeEventListener("keydown", handleKeyDown);
+      };
     }
   }, [initApp, loadFromFilePath]);
 
@@ -150,7 +162,7 @@ export const App: React.FC = () => {
           <div>
             <div className="flex items-center gap-2.5">
               <h1 className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-                SmartAR 智能应收账款账龄分析与坏账预警系统
+                SmartAR智能应收账款账龄分析与坏账预警系统
               </h1>
               <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
                 V1.1.0
@@ -165,11 +177,14 @@ export const App: React.FC = () => {
 
           {/* Global Controls: Base Date + Palette Switch + Import/Export */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Report As-Of Date Selector */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs">
+            {/* Report As-Of Date Selector (Formatted per system locale) */}
+            <div className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-850 transition-colors cursor-pointer" title="点击调整报表基准日">
               <Calendar className="w-3.5 h-3.5 text-zinc-400" />
               <span className="text-zinc-500 dark:text-zinc-400">
                 基准日:
+              </span>
+              <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">
+                {formatSystemDate(asOfDate)}
               </span>
               <input
                 type="date"
@@ -179,7 +194,8 @@ export const App: React.FC = () => {
                     void changeAsOfDate(e.target.value);
                   }
                 }}
-                className="font-mono font-medium text-zinc-900 dark:text-zinc-100 bg-transparent focus:outline-none cursor-pointer"
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                aria-label="选择基准日"
               />
             </div>
 
@@ -396,7 +412,7 @@ export const App: React.FC = () => {
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-zinc-400 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                       <span>逾期单据: {pipelineData.overdueCount}笔 / {pipelineData.normalCount}笔</span>
-                      <span>基准日: {pipelineData.asOfDate}</span>
+                      <span>基准日: {formatSystemDate(pipelineData.asOfDate)}</span>
                     </div>
                   </div>
 
@@ -405,8 +421,8 @@ export const App: React.FC = () => {
                       数据治理与异常分流统计
                     </div>
                     <div className="text-xl font-bold font-mono text-zinc-900 dark:text-zinc-50 mt-1">
-                      {pipelineData.totalSuspended}笔挂起{" "}
-                      <span className="text-xs font-normal text-zinc-400">
+                      {pipelineData.totalSuspended}笔挂起
+                      <span className="text-xs font-normal text-zinc-400 ml-1">
                         / {pipelineData.totalMissingFixed + pipelineData.totalInPlaceFixed}处修复
                       </span>
                     </div>
@@ -530,14 +546,11 @@ export const App: React.FC = () => {
         ) : null}
       </main>
 
-      {/* Footer - Clean Monochromatic */}
+      {/* Footer - Clean Monochromatic Centered */}
       <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-2.5 text-[11px] text-zinc-500">
-        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-center text-center">
           <span>
-            SmartAR Desktop · 基于桌面运行时 + React 19 + shadcn/ui + Excelize v2构建 · 遵循MPL 2.0开源协议
-          </span>
-          <span className="font-mono">
-            五级预警等级：正常(#77DD77) / 关注(#77BBDD) / 审慎(#FFDD88) / 严控(#7777AA) / 高危(#FF8899)
+            SmartAR Desktop · 基于桌面运行时+React 19+shadcn/ui+Excelize v2构建 · 遵循MPL-2.0开源协议
           </span>
         </div>
       </footer>

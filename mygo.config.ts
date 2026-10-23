@@ -19,7 +19,7 @@ export default defineConfig({
     },
   ],
   linux: {
-    comment: "SmartAR 智能应收账款账龄分析与坏账预警桌面系统 (MyGO!!!!! Edition)",
+    comment: "SmartAR智能应收账款账龄分析与坏账预警系统",
     categories: ["Office", "Finance"],
   },
 });

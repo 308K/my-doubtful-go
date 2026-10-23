@@ -67,8 +67,8 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
           onDrop={handleDrop}
           className={`lg:col-span-2 rounded-2xl border-2 border-dashed p-6 flex flex-col items-center justify-center text-center transition-all ${
             isDragging
-              ? "border-sky-500 bg-sky-500/10"
-              : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/70 hover:border-sky-500/60"
+              ? "border-zinc-900 bg-zinc-900/5 dark:border-zinc-100 dark:bg-zinc-100/10"
+              : "border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 hover:border-zinc-500"
           }`}
         >
           <input
@@ -85,10 +85,10 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
             <Upload className="w-6 h-6" />
           </div>
           <h3 className="text-base font-bold text-zinc-900 dark:text-white">
-            拖拽 ERP 应收账款原始 Excel 到此处，或调用系统原生文件对话框
+            拖拽ERP应收账款原始Excel到此处，或调用系统原生文件对话框
           </h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xl">
-            支持用友 U8、金蝶云星空、SAP、Oracle 等导出的含多级表头、空白行、小计合计行与重复记录的 `.xlsx` 原始表，100% 本地内存高速清洗。
+            支持用友U8、金蝶云星空、SAP、Oracle等导出的含多级表头、空白行、小计合计行与重复记录的.xlsx原始表，本地内存高速清洗。
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
             <button
@@ -96,7 +96,7 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
               className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             >
               <FolderOpen className="w-4 h-4" />
-              浏览本地 Excel 文件 (原生对话框)
+              浏览本地Excel文件（原生对话框）
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -109,7 +109,7 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
               className="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Sparkles className="w-4 h-4" />
-              重载内置实训样本 (应收账款明细表_原始数据.xlsx)
+              重载内置实训样本（应收账款明细表_原始数据.xlsx）
             </button>
           </div>
         </div>
@@ -155,7 +155,7 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
             onClick={onNextStep}
             className="mt-4 w-full py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 text-xs font-semibold flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer"
           >
-            进入 Step 2：主数据对齐与缺失修补
+            进入Step 2：主数据对齐与缺失修补
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -220,7 +220,7 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-4">
         <h4 className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-2.5 flex items-center gap-1.5">
           <Layers className="w-4 h-4 text-zinc-500" />
-          Step 1 结构探测与清洗引擎执行日志
+          Step 1结构探测与清洗引擎执行日志
         </h4>
         <div className="space-y-1.5 font-mono text-xs text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-950/70 p-3 rounded-lg border border-zinc-200/60 dark:border-zinc-800">
           {s.details.map((line, idx) => (
@@ -257,17 +257,17 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
         <div>
           <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
             <Database className="w-4 h-4 text-zinc-500" />
-            Step 2：8类缺失值智能推导修补（共修补{data.totalMissingFixed}处缺失单元格）& 20家标准客户主数据对齐
+            Step 2：8类缺失值智能推导修补（共修补{data.totalMissingFixed}处缺失单元格）与20家标准客户主数据对齐
           </h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            自动将客户简称/别名反查对齐至 CUST001~CUST020 标准主档案，并按历史有效账期众数与财务平衡恒等式修补缺失项。
+            自动将客户简称/别名反查对齐至CUST001~CUST020标准主档案，并按历史有效账期众数与财务平衡恒等式修补缺失项。
           </p>
         </div>
         <button
           onClick={onNextStep}
           className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
         >
-          进入 Step 3：9 类异常审计与分流
+          进入Step 3：9类异常审计与分流
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -314,18 +314,15 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
 
       {/* Missing Value Repair Detail Table */}
       {activeMissing && (
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 overflow-hidden">
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
             <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
               【{activeMissing.field}】缺失值推导与填充明细（共{activeMissing.actualCount}条记录）
             </span>
-            <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
-              与实训核对标准 100% 一致
-            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800/70 text-slate-500 dark:text-slate-400">
+              <thead className="bg-zinc-50 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400">
                 <tr>
                   <th className="px-4 py-2">序号</th>
                   <th className="px-4 py-2">标准客户编码</th>
@@ -335,14 +332,14 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
                   <th className="px-4 py-2">财务推导依据</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {activeMissing.items.map((item, i) => (
-                  <tr key={i} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
+                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60">
                     <td className="px-4 py-2 font-mono">#{item.seq}</td>
-                    <td className="px-4 py-2 font-mono text-sky-600 dark:text-sky-400">
+                    <td className="px-4 py-2 font-mono text-zinc-800 dark:text-zinc-200">
                       {item.custCode}
                     </td>
-                    <td className="px-4 py-2 font-medium text-slate-900 dark:text-slate-100">
+                    <td className="px-4 py-2 font-medium text-zinc-900 dark:text-zinc-100">
                       {item.custName}
                     </td>
                     <td className="px-4 py-2 font-mono text-rose-500">
@@ -351,7 +348,7 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
                     <td className="px-4 py-2 font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       {item.filledValue}
                     </td>
-                    <td className="px-4 py-2 text-slate-600 dark:text-slate-300">
+                    <td className="px-4 py-2 text-zinc-600 dark:text-zinc-300">
                       {item.ruleDesc}
                     </td>
                   </tr>
@@ -370,12 +367,12 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
             客户主数据标准字典（CUST001 ~ CUST020，含别名模糊匹配与历史账期众数）
           </span>
           <span className="text-[11px] text-zinc-400">
-            同步导出至 Excel Sheet 5《客户标准信息表》
+            同步导出至Excel Sheet 5《客户标准信息表》
           </span>
         </div>
         <div className="max-h-72 overflow-y-auto">
           <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+            <thead className="sticky top-0 bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300">
               <tr>
                 <th className="px-4 py-2">标准编码</th>
                 <th className="px-4 py-2">标准客户全称</th>
@@ -384,9 +381,9 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
                 <th className="px-4 py-2">原表出现的简称/别名映射</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {data.customerStandards.map((c) => (
-                <tr key={c.code} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+                <tr key={c.code} className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60">
                   <td className="px-4 py-2 font-mono font-semibold text-zinc-900 dark:text-zinc-100">
                     {c.code}
                   </td>
@@ -444,17 +441,17 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
         <div>
           <h3 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-zinc-500" />
-            Step 3：9 类财务异常审计与分流（{data.normalCount}笔正常并入表 + {data.totalSuspended}笔挂起隔离）
+            Step 3：9类财务异常审计与分流（{data.normalCount}笔正常并入表+{data.totalSuspended}笔挂起隔离）
           </h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-            6 类公式与录入矛盾原地修正入表；3 类实质性业务异常（7笔离群/低于2万阈值、3笔溢缴超收、3笔零余额挂账）严格挂起隔离，防止扭曲坏账计提基数。
+            6类公式与录入矛盾原地修正入表；3类实质性业务异常（7笔离群/低于2万阈值、3笔溢缴超收、3笔零余额挂账）严格挂起隔离，防止扭曲坏账计提基数。
           </p>
         </div>
         <button
           onClick={onNextStep}
           className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
         >
-          进入 Step 4：账龄预警看板
+          进入Step 4：账龄预警看板
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -505,7 +502,7 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
 
       {/* Active Anomaly Category Drilldown */}
       {activeAnomaly && (
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 overflow-hidden">
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden">
           <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-xs font-bold text-zinc-900 dark:text-white">
@@ -523,13 +520,13 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
               }`}
             >
               {activeAnomaly.disposition === "suspended"
-                ? "分流至 Sheet 3《挂起异常清单》"
-                : "原地修正后并入 Sheet 1《应收账款明细(清洗后)》"}
+                ? "分流至Sheet 3《挂起异常清单》"
+                : "原地修正后并入Sheet 1《应收账款明细(清洗后)》"}
             </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 dark:bg-zinc-800/70 text-zinc-500 dark:text-zinc-400">
+              <thead className="bg-zinc-50 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400">
                 <tr>
                   <th className="px-4 py-2">序号</th>
                   <th className="px-4 py-2">客户名称</th>
@@ -538,9 +535,9 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
                   <th className="px-4 py-2">审计处置措施</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {activeAnomaly.items.map((item, i) => (
-                  <tr key={i} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/30">
+                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60">
                     <td className="px-4 py-2 font-mono">#{item.seq}</td>
                     <td className="px-4 py-2 font-medium text-zinc-900 dark:text-zinc-100">
                       {item.custName} ({item.custCode})
@@ -657,13 +654,13 @@ export const Step5FormulaExportView: React.FC<Step5Props> = ({
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 mb-2">
               <Calculator className="w-3.5 h-3.5" />
-              Excelize v2 动态公式注入引擎 · 全表2432个原生公式联动
+              Excelize v2动态公式注入引擎 · 全表2432个原生公式联动
             </div>
             <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
-              导出保留 100% 原生动态公式的 5 个工作表财务审计工作簿
+              导出保留原生动态公式的5个工作表财务审计工作簿
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-2xl">
-              拒绝传统报表工具导出的“死数值”！在导出的 Excel 中修改 <code className="text-zinc-700 dark:text-zinc-300 font-mono">&apos;坏账准备与预警分析表&apos;!$B$1</code> 的报表基准日，全工作簿 107笔正常明细、13笔挂起清单及汇总透视表将自动级联重算。
+              拒绝传统报表工具导出的“死数值”！在导出的Excel中修改<code className="text-zinc-700 dark:text-zinc-300 font-mono">&apos;坏账准备与预警分析表&apos;!$B$1</code>的报表基准日，全工作簿107笔正常明细、13笔挂起清单及汇总透视表将自动级联重算。
             </p>
           </div>
 
@@ -706,7 +703,7 @@ export const Step5FormulaExportView: React.FC<Step5Props> = ({
               className="px-4 py-2.5 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              另存为 Excel 工作簿 (系统对话框)
+              另存为Excel工作簿（系统对话框）
             </button>
           </div>
         </div>
@@ -738,7 +735,7 @@ export const Step5FormulaExportView: React.FC<Step5Props> = ({
             Sheet 2《坏账准备与预警分析表》跨表透视预览（全局基准日单元格 $B$1: =DATE({data.asOfDate.replaceAll("-", ",")})）
           </span>
           <span className="text-[11px] font-mono text-zinc-500">
-            COUNTIF + SUMIF + ROUND 动态汇总
+            COUNTIF + SUMIF + ROUND动态汇总
           </span>
         </div>
         <div className="overflow-x-auto">
@@ -852,13 +849,13 @@ export const Step5FormulaExportView: React.FC<Step5Props> = ({
             sheet: "Sheet 1",
             title: "应收账款明细(清洗后)",
             rows: `${data.normalCount}笔正常业务明细`,
-            desc: "包含 L/N/O/P/Q/S/T/U/V/W 共 10 列原生动态公式，冻结首行窗格。",
+            desc: "包含L/N/O/P/Q/S/T/U/V/W共10列原生动态公式，冻结首行窗格。",
           },
           {
             sheet: "Sheet 2",
             title: "坏账准备与预警分析表",
             rows: "5级账龄阶梯+合计行",
-            desc: "$B$1 全局基准日参数驱动全表，采用 COUNTIF/SUMIF 跨表实时汇总。",
+            desc: "$B$1全局基准日参数驱动全表，采用COUNTIF/SUMIF跨表实时汇总。",
           },
           {
             sheet: "Sheet 3",
@@ -876,7 +873,7 @@ export const Step5FormulaExportView: React.FC<Step5Props> = ({
             sheet: "Sheet 5",
             title: "客户标准信息表",
             rows: "20家标准客户主档案",
-            desc: "CUST001~CUST020 标准编码、名称、区域、信用等级与历史别名映射表。",
+            desc: "CUST001~CUST020标准编码、名称、区域、信用等级与历史别名映射表。",
           },
         ].map((s) => (
           <div
