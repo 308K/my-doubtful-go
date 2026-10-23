@@ -9,3 +9,5 @@ mygo_windows_*.syso
 *.deb
 应收账款智能分析报表_动态公式_*.xlsx
 应收账款明细表_清洗后_动态公式_*.xlsx
+temp_artifacts/
+release_dist/
