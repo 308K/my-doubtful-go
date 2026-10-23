@@ -467,13 +467,13 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		cLvl := fmt.Sprintf("%s%d", colLvl, r)
 		cAct := fmt.Sprintf("%s%d", colAct, r)
 
-		// PRD 5.1: 账龄区间 =IFS(O{i}<=30, "1个月以内", O{i}<=90, "1-3个月", O{i}<=180, "3-6个月", O{i}<=365, "6-12个月", TRUE, "1年以上")
-		f.SetCellFormula(sheet, cTier, fmt.Sprintf(`IFS(O%d<=30, "1个月以内", O%d<=90, "1-3个月", O%d<=180, "3-6个月", O%d<=365, "6-12个月", TRUE, "1年以上")`, r, r, r, r))
+		// PRD 5.1: 账龄区间 =IF(O{i}<=30, "1个月以内", IF(O{i}<=90, "1-3个月", IF(O{i}<=180, "3-6个月", IF(O{i}<=365, "6-12个月", "1年以上"))))
+		f.SetCellFormula(sheet, cTier, fmt.Sprintf(`IF(O%d<=30, "1个月以内", IF(O%d<=90, "1-3个月", IF(O%d<=180, "3-6个月", IF(O%d<=365, "6-12个月", "1年以上"))))`, r, r, r, r))
 		f.SetCellStyle(sheet, cTier, cTier, stCenter)
 		formulaCount++
 
-		// PRD 5.1: 坏账计提比例 =IFS(O{i}<=30, 0.01, O{i}<=90, 0.05, O{i}<=180, 0.20, O{i}<=365, 0.50, TRUE, 1.00)
-		f.SetCellFormula(sheet, cRate, fmt.Sprintf(`IFS(O%d<=30, 0.01, O%d<=90, 0.05, O%d<=180, 0.20, O%d<=365, 0.50, TRUE, 1.00)`, r, r, r, r))
+		// PRD 5.1: 坏账计提比例 =IF(O{i}<=30, 0.01, IF(O{i}<=90, 0.05, IF(O{i}<=180, 0.20, IF(O{i}<=365, 0.50, 1.00))))
+		f.SetCellFormula(sheet, cRate, fmt.Sprintf(`IF(O%d<=30, 0.01, IF(O%d<=90, 0.05, IF(O%d<=180, 0.20, IF(O%d<=365, 0.50, 1.00))))`, r, r, r, r))
 		f.SetCellStyle(sheet, cRate, cRate, stPctCenter)
 		formulaCount++
 
@@ -486,8 +486,8 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellStyle(sheet, cProv, cProv, stMoney)
 		formulaCount++
 
-		// PRD 5.1: 风险预警等级 =IFS(O{i}<=30, "无", O{i}<=90, "蓝色", O{i}<=180, "黄色", O{i}<=365, "橙色", TRUE, "红色")
-		f.SetCellFormula(sheet, cLvl, fmt.Sprintf(`IFS(O%d<=30, "无", O%d<=90, "蓝色", O%d<=180, "黄色", O%d<=365, "橙色", TRUE, "红色")`, r, r, r, r))
+		// PRD 5.1: 风险预警等级 =IF(O{i}<=30, "无", IF(O{i}<=90, "蓝色", IF(O{i}<=180, "黄色", IF(O{i}<=365, "橙色", "红色"))))
+		f.SetCellFormula(sheet, cLvl, fmt.Sprintf(`IF(O%d<=30, "无", IF(O%d<=90, "蓝色", IF(O%d<=180, "黄色", IF(O%d<=365, "橙色", "红色"))))`, r, r, r, r))
 		if st, ok := levelStyles[rec.RiskLevel]; ok {
 			f.SetCellStyle(sheet, cLvl, cLvl, st)
 		} else {
@@ -638,6 +638,13 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		YSplit:      2,
 		TopLeftCell: "A3",
 		ActivePane:  "bottomLeft",
+	})
+
+	calcMode := "auto"
+	forceFullCalc := true
+	_ = f.SetCalcProps(&excelize.CalcPropsOptions{
+		CalcMode:      &calcMode,
+		ForceFullCalc: &forceFullCalc,
 	})
 
 	f.SetActiveSheet(0)

@@ -99,6 +99,12 @@ func TestPipelineAndExportOnSampleDataset(t *testing.T) {
 		t.Errorf("expected O2 formula '坏账准备与预警分析表'!$B$1-G2, got %q", fO2)
 	}
 
+	fS2, _ := wb.GetCellFormula("应收账款明细(清洗后)", "S2")
+	expectedS2 := `IF(O2<=30, "1个月以内", IF(O2<=90, "1-3个月", IF(O2<=180, "3-6个月", IF(O2<=365, "6-12个月", "1年以上"))))`
+	if fS2 != expectedS2 {
+		t.Errorf("expected S2 formula %q, got %q", expectedS2, fS2)
+	}
+
 	fW2, _ := wb.GetCellFormula("应收账款明细(清洗后)", "W2")
 	if fW2 != "VLOOKUP(S2, '坏账准备与预警分析表'!$A$3:$J$7, 10, FALSE)" {
 		t.Errorf("expected W2 VLOOKUP formula, got %q", fW2)
