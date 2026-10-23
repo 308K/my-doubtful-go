@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"my-doubtful-go/internal/ar"
@@ -237,6 +238,20 @@ func (s *SmartARService) ToggleDevTools(ctx context.Context) {
 	win := mygo.CallerWindow(ctx)
 	if win != nil && win.Page() != nil {
 		win.Page().ToggleDevTools()
+	}
+}
+
+func init() {
+	if runtime.GOOS == "windows" {
+		// Enable Chromium Blink text-autospace layout engine (CSSTextAutoSpace) for Windows WebView2
+		args := os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
+		if !strings.Contains(args, "CSSTextAutoSpace") {
+			if args != "" {
+				args += " "
+			}
+			args += "--enable-blink-features=CSSTextAutoSpace"
+			_ = os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args)
+		}
 	}
 }
 
