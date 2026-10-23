@@ -27,6 +27,9 @@ jobs:
           check-latest: true
           cache: true
 
+      - name: Download Go Dependencies
+        run: go mod download
+
       - name: Setup Bun Runtime
         uses: oven-sh/setup-bun@v2
 
@@ -70,6 +73,9 @@ jobs:
           go-version: 'stable'
           check-latest: true
           cache: true
+
+      - name: Download Go Dependencies
+        run: go mod download
 
       - name: Setup Bun Runtime
         uses: oven-sh/setup-bun@v2
