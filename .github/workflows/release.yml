@@ -1,0 +1,108 @@
+name: Cross-Platform Build & Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Go Engine & Formula Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Runtime
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun Runtime
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Frontend Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck & Build React Frontend
+        run: bun run build:web
+
+      - name: Run Go Unit Tests (5-Step Pipeline & Excel Formula Engine)
+        run: CGO_ENABLED=0 go test -v ./internal/ar/...
+
+  build:
+    needs: test
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows (amd64 & arm64)
+            os: ubuntu-latest
+            platform: "windows/amd64,windows/arm64"
+            artifact_name: SmartAR-Windows
+          - name: macOS (Apple Silicon & Intel)
+            os: macos-latest
+            platform: "darwin/arm64,darwin/amd64"
+            artifact_name: SmartAR-macOS
+          - name: Linux (amd64 & arm64)
+            os: ubuntu-latest
+            platform: "linux/amd64,linux/arm64"
+            artifact_name: SmartAR-Linux
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go Runtime
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Bun Runtime
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies with Bun
+        run: bun install --frozen-lockfile
+
+      - name: Install NSIS for Windows Installer Packaging
+        if: matrix.artifact_name == 'SmartAR-Windows' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nsis
+
+      - name: Build Cross-Platform Packages via MyGo CLI
+        run: bun run build -- -platform "${{ matrix.platform }}"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            build/*/*.dmg
+            build/*/*.exe
+            build/*/*.deb
+            build/*/*.tar.gz
+            build/*/*.sh
+
+      - name: Publish Release Assets on Tag Push
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/*/*.dmg
+            build/*/*.exe
+            build/*/*.deb
+            build/*/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
