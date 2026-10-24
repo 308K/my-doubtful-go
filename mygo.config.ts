@@ -3,7 +3,7 @@ import { defineConfig } from "mygo-cli";
 export default defineConfig({
   name: "SmartAR",
   identifier: "io.github.mydoubtfulgo.smartar",
-  version: "1.2.0",
+  version: "2.0.0",
   copyright: "Copyright © 2026 SmartAR Contributors. Licensed under MPL-2.0.",
   devUrl: "http://localhost:5173",
   devCommand: "bun run dev:web",

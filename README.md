@@ -87,6 +87,7 @@ bun run build
 
 ---
 
-## 开源许可 (License)
+## 开源许可与第三方声明 (License & Third-Party Notices)
 
-本项目采用 **Mozilla Public License Version 2.0 (MPL 2.0)** 开源许可协议，详见 [LICENSE](./LICENSE) 文件。
+本项目采用 **Mozilla Public License Version 2.0 (MPL-2.0)** 开源许可协议，详见 [LICENSE](./LICENSE) 文件。
+同时，本项目严格遵循所使用的所有第三方开源依赖库之授权要求，完整依赖清单与许可证声明详见 [OPEN_SOURCE_LICENSES.md](./OPEN_SOURCE_LICENSES.md)。

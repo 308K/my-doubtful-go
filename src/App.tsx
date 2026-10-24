@@ -26,6 +26,7 @@ import { RuleSettingsModal } from "./components/RuleSettingsModal";
 import { AIAssistantDrawer } from "./components/AIAssistantDrawer";
 import { AISettingsModal } from "./components/AISettingsModal";
 import { AuditReportModal } from "./components/AuditReportModal";
+import { OpenSourceLicensesModal } from "./components/OpenSourceLicensesModal";
 import {
   FolderOpen,
   Download,
@@ -125,6 +126,7 @@ export const App: React.FC = () => {
   } = useSmartARStore();
 
   const dateInputRef = React.useRef<HTMLInputElement>(null);
+  const [isLicensesOpen, setIsLicensesOpen] = React.useState(false);
 
   const handleOpenDatePicker = () => {
     if (dateInputRef.current) {
@@ -196,6 +198,12 @@ export const App: React.FC = () => {
         <AIAssistantDrawer isStandalone={true} />
         <AISettingsModal />
         <AuditReportModal />
+
+      {/* Open Source Licenses & Third-Party Notices Modal */}
+      <OpenSourceLicensesModal
+        isOpen={isLicensesOpen}
+        onClose={() => setIsLicensesOpen(false)}
+      />
       </div>
     );
   }
@@ -212,7 +220,7 @@ export const App: React.FC = () => {
                 SmartAR智能应收账款账龄分析与坏账预警系统
               </h1>
               <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                V1.2.0
+                V2.0.0
               </span>
             </div>
             {systemInfo && (
@@ -644,10 +652,16 @@ export const App: React.FC = () => {
 
       {/* Footer - Clean Monochromatic Centered */}
       <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-2.5 text-[11px] text-zinc-500">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-center text-center">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-center text-center gap-1.5">
           <span>
-            SmartAR Desktop · 基于桌面运行时+React 19+shadcn/ui+Excelize v2构建 · 遵循MPL-2.0开源协议
+            SmartAR Desktop · 基于桌面运行时+React 19+shadcn/ui+Excelize v2构建 ·
           </span>
+          <button
+            onClick={() => setIsLicensesOpen(true)}
+            className="underline hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+          >
+            遵循MPL-2.0开源协议与第三方声明
+          </button>
         </div>
       </footer>
 
@@ -662,6 +676,12 @@ export const App: React.FC = () => {
 
       {/* Full Audit Management Report Viewer Modal (Eino Graph) */}
       <AuditReportModal />
+
+      {/* Open Source Licenses & Third-Party Notices Modal */}
+      <OpenSourceLicensesModal
+        isOpen={isLicensesOpen}
+        onClose={() => setIsLicensesOpen(false)}
+      />
     </div>
   );
 };
