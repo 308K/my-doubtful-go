@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 
+	"my-doubtful-go/internal/ai"
 	"my-doubtful-go/internal/ar"
 
 	"github.com/egoist/mygo"
@@ -41,6 +42,7 @@ type SmartARService struct {
 	lastSource string
 	lastResult *ar.PipelineResult
 	lastOpts   ar.PipelineOptions
+	aiSvc      *ai.Service
 }
 
 // GetSystemInfo returns host platform and Go kernel metadata.
@@ -330,6 +332,136 @@ func (s *SmartARService) RevealFileInFolder(filePath string) {
 	mygo.Shell.ShowItemInFolder(filePath)
 }
 
+// getCurrentRulePackage retrieves the currently configured rules or defaults.
+func (s *SmartARService) getCurrentRulePackage() ar.RuleConfigPackage {
+	pkg := ar.RuleConfigPackage{
+		ImputationRules:   ar.DefaultImputationConfig,
+		CustomerStandards: ar.DefaultCustomerStandards,
+		TierConfigs:       ar.DefaultTierConfigs,
+	}
+	if s.lastOpts.ImputationRules != nil {
+		pkg.ImputationRules = *s.lastOpts.ImputationRules
+	}
+	if len(s.lastOpts.CustomerStandards) > 0 {
+		pkg.CustomerStandards = s.lastOpts.CustomerStandards
+	}
+	if len(s.lastOpts.TierConfigs) > 0 {
+		pkg.TierConfigs = s.lastOpts.TierConfigs
+	}
+	return pkg
+}
+
+// GetAIConfig returns user-configured AI model and credentials.
+func (s *SmartARService) GetAIConfig() ai.AIConfig {
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	return s.aiSvc.GetConfig()
+}
+
+// SaveAIConfig saves user-configured AI settings.
+func (s *SmartARService) SaveAIConfig(cfg ai.AIConfig) error {
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	return s.aiSvc.SaveConfig(cfg)
+}
+
+// TestAIConnection probes model endpoint latency and validity.
+func (s *SmartARService) TestAIConnection(ctx context.Context, cfg ai.AIConfig) (string, error) {
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	return s.aiSvc.TestConnection(ctx, cfg)
+}
+
+// FetchAIModels queries the configured AI provider endpoint to list available models.
+func (s *SmartARService) FetchAIModels(ctx context.Context, cfg ai.AIConfig) ([]string, error) {
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	return s.aiSvc.FetchModels(ctx, cfg)
+}
+
+// OpenStandaloneAIWindow creates a new native desktop window dedicated to the AI assistant.
+func (s *SmartARService) OpenStandaloneAIWindow(darkMode bool) error {
+	url := "/?mode=ai-standalone"
+	if darkMode {
+		url += "&dark=1"
+	} else {
+		url += "&dark=0"
+	}
+	mygo.NewWindow(mygo.WindowOptions{
+		Title:           "SmartAR AI财务助手",
+		Width:           520,
+		Height:          850,
+		MinWidth:        360,
+		MinHeight:       500,
+		BackgroundColor: "light-dark(#ffffff, #09090b)",
+		StateKey:        "smartar-ai-standalone",
+		URL:             url,
+		Page: mygo.PageOptions{
+			DevTools: mygo.DevToolsEnabled,
+		},
+	})
+	return nil
+}
+
+// StreamAIChat executes Eino ReAct agent with financial tools and streams tokens to channel.
+func (s *SmartARService) StreamAIChat(ctx context.Context, history []ai.ChatMessage, stream *mygo.Channel[ai.StreamChunk]) error {
+	s.mu.Lock()
+	res := s.lastResult
+	rules := s.getCurrentRulePackage()
+	s.mu.Unlock()
+
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	return s.aiSvc.StreamChat(ctx, history, res, &rules, stream)
+}
+
+// StreamAuditReport synthesizes an executive management report using Eino Graph and streams tokens.
+func (s *SmartARService) StreamAuditReport(ctx context.Context, req ai.ReportGenRequest, stream *mygo.Channel[ai.StreamChunk]) (*ai.ReportResult, error) {
+	s.mu.Lock()
+	res := s.lastResult
+	s.mu.Unlock()
+
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	return s.aiSvc.GenerateAuditReport(ctx, req, res, stream)
+}
+
+// ApplyAIProposal approves a rule update proposal, applies it, and recomputes the pipeline.
+func (s *SmartARService) ApplyAIProposal(proposalID string) (*ar.PipelineResult, error) {
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	newRules, err := s.aiSvc.ApplyProposal(proposalID)
+	if err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	asOf := s.lastOpts.AsOfDate
+	s.mu.Unlock()
+
+	opts := ar.PipelineOptions{
+		AsOfDate:          asOf,
+		ImputationRules:   &newRules.ImputationRules,
+		CustomerStandards: newRules.CustomerStandards,
+		TierConfigs:       newRules.TierConfigs,
+	}
+	return s.RecomputeWithCustomRules(opts)
+}
+
+// RejectAIProposal rejects a rule update proposal.
+func (s *SmartARService) RejectAIProposal(proposalID string) error {
+	if s.aiSvc == nil {
+		s.aiSvc = ai.NewService()
+	}
+	return s.aiSvc.RejectProposal(proposalID)
+}
+
 // ToggleDevTools toggles the developer tools inspector window for debugging.
 func (s *SmartARService) ToggleDevTools(ctx context.Context) {
 	win := mygo.CallerWindow(ctx)
@@ -361,7 +493,9 @@ func init() {
 func main() {
 	mygo.App.SetLanguages("zh-CN", "zh-Hans", "zh")
 
-	svc := &SmartARService{}
+	svc := &SmartARService{
+		aiSvc: ai.NewService(),
+	}
 	mygo.Bind(svc)
 
 	mygo.App.OnWindowAllClosed(func() {

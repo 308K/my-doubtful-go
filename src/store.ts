@@ -3,14 +3,20 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import { create } from "zustand";
-import { isMyGo } from "mygo-runtime";
+import { isMyGo, Channel } from "mygo-runtime";
 import {
   SmartARService,
+  type AIConfig,
   type ARRecord,
+  type ChatMessage,
   type CustomerStandard,
   type ExportResult,
   type ImputationConfig,
   type PipelineResult,
+  type ReportResult,
+  type RuleConfigPackage,
+  type RuleUpdateProposal,
+  type StreamChunk,
   type SystemInfo,
   type TierConfig,
 } from "./mygo";
@@ -31,6 +37,17 @@ interface SmartARState {
   darkMode: boolean;
   isRuleModalOpen: boolean;
 
+  // AI Assistant States
+  isAIPanelOpen: boolean;
+  isAISettingsOpen: boolean;
+  isReportModalOpen: boolean;
+  aiConfig: AIConfig | null;
+  chatMessages: ChatMessage[];
+  isAIGenerating: boolean;
+  aiCurrentTool: string | null;
+  auditReport: ReportResult | null;
+  isGeneratingReport: boolean;
+
   // Table & Dashboard filter states
   searchQuery: string;
   tierFilter: string;
@@ -46,6 +63,13 @@ interface SmartARState {
   toggleDarkMode: () => void;
   openRuleModal: () => void;
   closeRuleModal: () => void;
+  openAIPanel: () => void;
+  closeAIPanel: () => void;
+  toggleAIPanel: () => void;
+  openAISettings: () => void;
+  closeAISettings: () => void;
+  openReportModal: () => void;
+  closeReportModal: () => void;
   setSearchQuery: (q: string) => void;
   setTierFilter: (tier: string) => void;
   setRegionFilter: (region: string) => void;
@@ -67,7 +91,46 @@ interface SmartARState {
   resetCustomRules: () => Promise<void>;
   exportWorkbook: (quickMode?: boolean) => Promise<void>;
   revealExportedFile: (filePath: string) => Promise<void>;
+
+  // AI Actions
+  fetchAIConfig: () => Promise<void>;
+  saveAIConfig: (cfg: AIConfig) => Promise<void>;
+  fetchModels: () => Promise<string[]>;
+  addCustomModel: (modelName: string) => Promise<void>;
+  removeCustomModel: (modelName: string) => Promise<void>;
+  setActiveModel: (model: string) => Promise<void>;
+  setReasoningEffort: (effort: string) => Promise<void>;
+  openStandaloneWindow: () => Promise<void>;
+  sendChatMessage: (content: string) => Promise<void>;
+  clearChat: () => void;
+  generateAuditReport: (focus?: string) => Promise<void>;
+  approveProposal: (proposalId: string) => Promise<void>;
+  rejectProposal: (proposalId: string) => Promise<void>;
 }
+
+export const getInitialDarkMode = (): boolean => {
+  if (typeof window === "undefined") return true;
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has("dark")) {
+    return urlParams.get("dark") === "1";
+  }
+  const saved = localStorage.getItem("smartar-dark-mode");
+  if (saved !== null) {
+    return saved === "1";
+  }
+  return true;
+};
+
+export const applyDarkModeDOM = (isDark: boolean) => {
+  if (typeof document === "undefined") return;
+  document.documentElement.classList.toggle("dark", isDark);
+  document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+  try {
+    localStorage.setItem("smartar-dark-mode", isDark ? "1" : "0");
+  } catch {
+    // ignore
+  }
+};
 
 export const useSmartARStore = create<SmartARState>((set, get) => ({
   activeStep: 4,
@@ -79,8 +142,26 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   toastMessage: null,
   asOfDate: "2026-06-30",
   paletteMode: "classic",
-  darkMode: true,
+  darkMode: getInitialDarkMode(),
   isRuleModalOpen: false,
+
+  // AI Assistant States
+  isAIPanelOpen: false,
+  isAISettingsOpen: false,
+  isReportModalOpen: false,
+  aiConfig: null,
+  chatMessages: [
+    {
+      role: "assistant",
+      content:
+        "您好！我是SmartAR智能财务与信用审计专家助手。\n\n我可以协助您进行**应收账款全局资产指标问答**、**5级账龄区间与坏账准备测算穿透**、**大客户集中度与逾期风险审计**，以及**自然语言规则配置（人机协同审核）**。\n\n您可以点击下方快捷提示词或直接输入问题，也可以点击右上角生成《管理层审计分析管报》。",
+      createdAt: new Date().toLocaleTimeString(),
+    },
+  ],
+  isAIGenerating: false,
+  aiCurrentTool: null,
+  auditReport: null,
+  isGeneratingReport: false,
 
   searchQuery: "",
   tierFilter: "ALL",
@@ -102,12 +183,18 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   toggleDarkMode: () =>
     set((s) => {
       const next = !s.darkMode;
-      document.documentElement.classList.toggle("dark", next);
-      document.documentElement.style.colorScheme = next ? "dark" : "light";
+      applyDarkModeDOM(next);
       return { darkMode: next };
     }),
   openRuleModal: () => set({ isRuleModalOpen: true }),
   closeRuleModal: () => set({ isRuleModalOpen: false }),
+  openAIPanel: () => set({ isAIPanelOpen: true }),
+  closeAIPanel: () => set({ isAIPanelOpen: false }),
+  toggleAIPanel: () => set((s) => ({ isAIPanelOpen: !s.isAIPanelOpen })),
+  openAISettings: () => set({ isAISettingsOpen: true }),
+  closeAISettings: () => set({ isAISettingsOpen: false }),
+  openReportModal: () => set({ isReportModalOpen: true }),
+  closeReportModal: () => set({ isReportModalOpen: false }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setTierFilter: (tierFilter) => set({ tierFilter }),
   setRegionFilter: (regionFilter) => set({ regionFilter }),
@@ -116,8 +203,9 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   clearToast: () => set({ toastMessage: null }),
 
   initApp: async () => {
-    document.documentElement.classList.add("dark");
-    document.documentElement.style.colorScheme = "dark";
+    const isDark = getInitialDarkMode();
+    applyDarkModeDOM(isDark);
+    set({ darkMode: isDark });
     if (!isMyGo()) {
       set({
         error: "当前运行在浏览器预览模式，请通过桌面端运行以启用Go内核计算能力。",
@@ -135,6 +223,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
         pipelineData: data,
         isLoading: false,
       });
+      void get().fetchAIConfig();
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : String(err),
@@ -332,4 +421,262 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       // ignore
     }
   },
+
+  fetchAIConfig: async () => {
+    try {
+      const cfg = await SmartARService.getAIConfig();
+      if (cfg) set({ aiConfig: cfg });
+    } catch {
+      // ignore
+    }
+  },
+
+  saveAIConfig: async (cfg: AIConfig) => {
+    try {
+      await SmartARService.saveAIConfig(cfg);
+      set({ aiConfig: cfg, toastMessage: "AI模型配置已成功保存" });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  fetchModels: async () => {
+    const cfg = get().aiConfig;
+    if (!cfg) return [];
+    try {
+      const list = await SmartARService.fetchAIModels(cfg);
+      return list || [];
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+      return [];
+    }
+  },
+
+  addCustomModel: async (modelName: string) => {
+    const trimmed = modelName.trim();
+    if (!trimmed) return;
+    const cfg = get().aiConfig;
+    if (!cfg) return;
+    const currentList = cfg.savedModels || [];
+    if (!currentList.includes(trimmed)) {
+      const updatedList = [...currentList, trimmed];
+      const newCfg: AIConfig = { ...cfg, savedModels: updatedList, model: trimmed };
+      await get().saveAIConfig(newCfg);
+    } else {
+      const newCfg: AIConfig = { ...cfg, model: trimmed };
+      await get().saveAIConfig(newCfg);
+    }
+  },
+
+  removeCustomModel: async (modelName: string) => {
+    const cfg = get().aiConfig;
+    if (!cfg) return;
+    const currentList = cfg.savedModels || [];
+    const updatedList = currentList.filter((m) => m !== modelName);
+    let nextActiveModel = cfg.model;
+    if (nextActiveModel === modelName) {
+      nextActiveModel = updatedList[0] || "deepseek-chat";
+    }
+    const newCfg: AIConfig = { ...cfg, savedModels: updatedList, model: nextActiveModel };
+    await get().saveAIConfig(newCfg);
+  },
+
+  setActiveModel: async (model: string) => {
+    const cfg = get().aiConfig;
+    if (!cfg) return;
+    const newCfg: AIConfig = { ...cfg, model };
+    await get().saveAIConfig(newCfg);
+  },
+
+  setReasoningEffort: async (effort: string) => {
+    const cfg = get().aiConfig;
+    if (!cfg) return;
+    const newCfg: AIConfig = { ...cfg, reasoningEffort: effort };
+    await get().saveAIConfig(newCfg);
+  },
+
+  openStandaloneWindow: async () => {
+    try {
+      await SmartARService.openStandaloneAIWindow(get().darkMode);
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  sendChatMessage: async (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed || get().isAIGenerating) return;
+
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: trimmed,
+      createdAt: new Date().toLocaleTimeString(),
+    };
+
+    const assistantMsgPlaceholder: ChatMessage = {
+      role: "assistant",
+      content: "",
+      reasoningContent: "",
+      createdAt: new Date().toLocaleTimeString(),
+    };
+
+    set((s) => ({
+      chatMessages: [...s.chatMessages, userMsg, assistantMsgPlaceholder],
+      isAIGenerating: true,
+      aiCurrentTool: null,
+    }));
+
+    try {
+      const historyToSend = [...get().chatMessages.slice(0, -1)];
+
+      const ch = new Channel<StreamChunk>((chunk) => {
+        if (!chunk) return;
+        set((s) => {
+          const msgs = [...s.chatMessages];
+          const target = msgs[msgs.length - 1];
+          if (!target || target.role !== "assistant") return s;
+
+          if (chunk.type === "token" && chunk.content) {
+            target.content += chunk.content;
+          } else if (chunk.type === "reasoning" && chunk.content) {
+            target.reasoningContent = (target.reasoningContent || "") + chunk.content;
+          } else if (chunk.type === "tool_start") {
+            return { chatMessages: msgs, aiCurrentTool: chunk.content || "正在调用财务工具..." };
+          } else if (chunk.type === "tool_end") {
+            return { chatMessages: msgs, aiCurrentTool: null };
+          } else if (chunk.type === "proposal" && chunk.proposal) {
+            target.proposal = chunk.proposal;
+          } else if (chunk.type === "error" && chunk.content) {
+            target.content += `\n\n> **执行提示**：${chunk.content}`;
+          }
+          return { chatMessages: msgs };
+        });
+      });
+
+      await SmartARService.streamAIChat(historyToSend, ch);
+    } catch (err) {
+      set((s) => {
+        const msgs = [...s.chatMessages];
+        const target = msgs[msgs.length - 1];
+        if (target && target.role === "assistant") {
+          target.content += `\n\n> **请求异常**：${err instanceof Error ? err.message : String(err)}`;
+        }
+        return { chatMessages: msgs };
+      });
+    } finally {
+      set({ isAIGenerating: false, aiCurrentTool: null });
+    }
+  },
+
+  clearChat: () => {
+    set({
+      chatMessages: [
+        {
+          role: "assistant",
+          content: "已清空当前会话历史。您可以随时提出新的问题，或点击快捷指令开始分析。",
+          createdAt: new Date().toLocaleTimeString(),
+        },
+      ],
+    });
+  },
+
+  generateAuditReport: async (focus = "comprehensive") => {
+    set({ isGeneratingReport: true, isReportModalOpen: true, error: null });
+    let liveMarkdown = "";
+
+    try {
+      const ch = new Channel<StreamChunk>((chunk) => {
+        if (!chunk) return;
+        if (chunk.type === "token" && chunk.content) {
+          liveMarkdown += chunk.content;
+          set({
+            auditReport: {
+              markdownContent: liveMarkdown,
+              executiveSummary: "正在实时流式撰写审计管理报告...",
+              createdAt: new Date().toLocaleTimeString(),
+            },
+          });
+        }
+      });
+
+      const res = await SmartARService.streamAuditReport(
+        { focus, includeRecommendations: true },
+        ch
+      );
+      if (res) {
+        set({ auditReport: res, isGeneratingReport: false });
+      }
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : String(err),
+        isGeneratingReport: false,
+      });
+    } finally {
+      set({ isGeneratingReport: false });
+    }
+  },
+
+  approveProposal: async (proposalId: string) => {
+    set({ isLoading: true });
+    try {
+      const res = await SmartARService.applyAIProposal(proposalId);
+      if (res) {
+        set((s) => {
+          const updatedMessages = s.chatMessages.map((m) => {
+            if (m.proposal && m.proposal.proposalId === proposalId) {
+              return {
+                ...m,
+                proposal: { ...m.proposal, status: "approved" },
+              };
+            }
+            return m;
+          });
+          return {
+            pipelineData: res,
+            chatMessages: updatedMessages,
+            isLoading: false,
+            toastMessage: "已成功批准并应用AI规则提案，全表已完成重新测算",
+          };
+        });
+      }
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : String(err),
+        isLoading: false,
+      });
+    }
+  },
+
+  rejectProposal: async (proposalId: string) => {
+    try {
+      await SmartARService.rejectAIProposal(proposalId);
+      set((s) => {
+        const updatedMessages = s.chatMessages.map((m) => {
+          if (m.proposal && m.proposal.proposalId === proposalId) {
+            return {
+              ...m,
+              proposal: { ...m.proposal, status: "rejected" },
+            };
+          }
+          return m;
+        });
+        return {
+          chatMessages: updatedMessages,
+          toastMessage: "已放弃该规则变更提案。",
+        };
+      });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
 }));
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === "smartar-dark-mode" && e.newValue !== null) {
+      const isDark = e.newValue === "1";
+      applyDarkModeDOM(isDark);
+      useSmartARStore.setState({ darkMode: isDark });
+    }
+  });
+}

@@ -180,7 +180,7 @@ export function formatPercent(ratio: number, digits = 1): string {
 }
 
 /**
- * 按照当前系统 locale 格式化日期字符串 (YYYY-MM-DD / YYYY/MM/DD)
+ * 按照当前系统locale格式化日期字符串 (YYYY-MM-DD / YYYY/MM/DD)
  */
 export function formatSystemDate(dateStr: string): string {
   if (!dateStr) return "";
@@ -205,7 +205,7 @@ export function formatSystemDate(dateStr: string): string {
 }
 
 /**
- * 按照当前系统 locale 格式化日期时间字符串 (YYYY-MM-DD HH:mm:ss)
+ * 按照当前系统locale格式化日期时间字符串 (YYYY-MM-DD HH:mm:ss)
  */
 export function formatSystemDateTime(dateTimeStr: string): string {
   if (!dateTimeStr) return "";

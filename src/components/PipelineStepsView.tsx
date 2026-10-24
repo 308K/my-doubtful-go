@@ -442,6 +442,7 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
   data,
   onNextStep,
 }) => {
+  const { openAIPanel, sendChatMessage } = useSmartARStore();
   const [selectedCat, setSelectedCat] = useState<string>(
     data.anomalySummaries[0]?.category ?? "应收金额为负"
   );
@@ -507,7 +508,7 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
                   {as.actualCount}笔
                 </span>
                 <span className="text-[10px] text-zinc-500">
-                  预期{as.expectedCount}笔 ✓
+                  预期{as.expectedCount}笔
                 </span>
               </div>
             </div>
@@ -635,6 +636,26 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* AI Consultation Prompt for Step 3 Anomalies */}
+      <div className="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/30 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+          <span className="text-xs text-zinc-700 dark:text-zinc-300">
+            需要针对上述13笔挂起异常进行调账冲销、凭证规范复核或内控缺陷归因？
+          </span>
+        </div>
+        <button
+          onClick={() => {
+            openAIPanel();
+            void sendChatMessage("请详细审查Step 3审计中挂起隔离的13笔实质性风险异常单据，并针对发票红冲与凭证调账给出专业合规处理建议。");
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white/90 transition-colors shadow-xs cursor-pointer"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          向AI助手咨询异常处置合规建议
+        </button>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import React, { useEffect } from "react";
+import clsx from "clsx";
 import { isMyGo, onFileDrop } from "mygo-runtime";
 import { SmartARService } from "./mygo";
 import { useSmartARStore, type ActiveStep } from "./store";
@@ -22,6 +23,9 @@ import {
   Step5FormulaExportView,
 } from "./components/PipelineStepsView";
 import { RuleSettingsModal } from "./components/RuleSettingsModal";
+import { AIAssistantDrawer } from "./components/AIAssistantDrawer";
+import { AISettingsModal } from "./components/AISettingsModal";
+import { AuditReportModal } from "./components/AuditReportModal";
 import {
   FolderOpen,
   Download,
@@ -39,6 +43,7 @@ import {
   CheckCircle2,
   Cpu,
   SlidersHorizontal,
+  FileText,
 } from "lucide-react";
 
 const PIPELINE_STEPS: {
@@ -101,6 +106,9 @@ export const App: React.FC = () => {
     togglePaletteMode,
     toggleDarkMode,
     openRuleModal,
+    isAIPanelOpen,
+    toggleAIPanel,
+    generateAuditReport,
     setSearchQuery,
     setTierFilter,
     setRegionFilter,
@@ -172,6 +180,25 @@ export const App: React.FC = () => {
       : datasetScope === "suspended"
       ? pipelineData?.suspendedRecords ?? []
       : pipelineData?.allRecords ?? [];
+
+  const isStandaloneAI =
+    typeof window !== "undefined" &&
+    window.location.search.includes("mode=ai-standalone");
+
+  if (isStandaloneAI) {
+    return (
+      <div
+        className={clsx(
+          "h-screen w-screen overflow-hidden flex flex-col font-sans",
+          darkMode ? "dark bg-zinc-900 text-zinc-100" : "bg-white text-zinc-900"
+        )}
+      >
+        <AIAssistantDrawer isStandalone={true} />
+        <AISettingsModal />
+        <AuditReportModal />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col font-sans">
@@ -263,6 +290,31 @@ export const App: React.FC = () => {
             >
               <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
               <span>规则配置</span>
+            </button>
+
+            {/* AI Financial Copilot Toggle */}
+            <button
+              onClick={toggleAIPanel}
+              className={clsx(
+                "px-2.5 py-1.5 rounded-md border text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer shadow-xs",
+                isAIPanelOpen
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-white"
+                  : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
+              )}
+              title="打开AI财务治理助手 (CloudWeGo Eino驱动)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>AI助手</span>
+            </button>
+
+            {/* Management Audit Report Trigger */}
+            <button
+              onClick={() => void generateAuditReport("comprehensive")}
+              className="px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="一键多步编排生成管理层应收账款审计分析管报"
+            >
+              <FileText className="w-3.5 h-3.5 text-zinc-400" />
+              <span>审计管报</span>
             </button>
 
             {/* Dark / Light Mode Toggle */}
@@ -601,6 +653,15 @@ export const App: React.FC = () => {
 
       {/* Business Rules & Master Data Configuration Modal */}
       <RuleSettingsModal />
+
+      {/* AI Financial Copilot Drawer (Eino ReAct Agent) */}
+      <AIAssistantDrawer />
+
+      {/* AI Model & Endpoint Settings Modal */}
+      <AISettingsModal />
+
+      {/* Full Audit Management Report Viewer Modal (Eino Graph) */}
+      <AuditReportModal />
     </div>
   );
 };
