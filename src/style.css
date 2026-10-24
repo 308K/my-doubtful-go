@@ -19,6 +19,12 @@ html, body {
   -webkit-text-autospace: normal;
 }
 
+/* Ensure high-contrast text selection across light and dark themes */
+::selection {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
 /* Ensure default browser black outline is suppressed on focus */
 input:focus,
 select:focus,

@@ -51,7 +51,7 @@ func (s *SmartARService) GetSystemInfo() SystemInfo {
 		OS:         runtime.GOOS,
 		Arch:       runtime.GOARCH,
 		GoVersion:  runtime.Version(),
-		AppVersion: "2.0.0",
+		AppVersion: "2.1.0",
 		Engine:     "Pure Go + Excelize v2 (No CGo)",
 	}
 }
@@ -351,12 +351,12 @@ func (s *SmartARService) getCurrentRulePackage() ar.RuleConfigPackage {
 	return pkg
 }
 
-// GetAIConfig returns user-configured AI model and credentials.
+// GetAIConfig returns user-configured AI model and credentials sanitized for frontend (APIKey is wiped).
 func (s *SmartARService) GetAIConfig() ai.AIConfig {
 	if s.aiSvc == nil {
 		s.aiSvc = ai.NewService()
 	}
-	return s.aiSvc.GetConfig()
+	return s.aiSvc.GetClientConfig()
 }
 
 // SaveAIConfig saves user-configured AI settings.
@@ -372,6 +372,9 @@ func (s *SmartARService) TestAIConnection(ctx context.Context, cfg ai.AIConfig) 
 	if s.aiSvc == nil {
 		s.aiSvc = ai.NewService()
 	}
+	if cfg.APIKey == "" {
+		cfg.APIKey = s.aiSvc.GetConfig().APIKey
+	}
 	return s.aiSvc.TestConnection(ctx, cfg)
 }
 
@@ -379,6 +382,9 @@ func (s *SmartARService) TestAIConnection(ctx context.Context, cfg ai.AIConfig) 
 func (s *SmartARService) FetchAIModels(ctx context.Context, cfg ai.AIConfig) ([]string, error) {
 	if s.aiSvc == nil {
 		s.aiSvc = ai.NewService()
+	}
+	if cfg.APIKey == "" {
+		cfg.APIKey = s.aiSvc.GetConfig().APIKey
 	}
 	return s.aiSvc.FetchModels(ctx, cfg)
 }

@@ -12,6 +12,7 @@ import {
   type CustomerStandard,
   type ExportResult,
   type ImputationConfig,
+  type PipelineOptions,
   type PipelineResult,
   type ReportResult,
   type RuleConfigPackage,
@@ -102,6 +103,7 @@ interface SmartARState {
   setReasoningEffort: (effort: string) => Promise<void>;
   openStandaloneWindow: () => Promise<void>;
   sendChatMessage: (content: string) => Promise<void>;
+  withdrawChatMessage: (index: number) => Promise<void>;
   clearChat: () => void;
   generateAuditReport: (focus?: string) => Promise<void>;
   approveProposal: (proposalId: string) => Promise<void>;
@@ -434,7 +436,8 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   saveAIConfig: async (cfg: AIConfig) => {
     try {
       await SmartARService.saveAIConfig(cfg);
-      set({ aiConfig: cfg, toastMessage: "AI模型配置已成功保存" });
+      const reloaded = await SmartARService.getAIConfig();
+      set({ aiConfig: reloaded || { ...cfg, apiKey: "", hasApiKey: true }, toastMessage: "AI模型配置已成功保存" });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : String(err) });
     }
@@ -511,6 +514,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       role: "user",
       content: trimmed,
       createdAt: new Date().toLocaleTimeString(),
+      pipelineSnapshot: get().pipelineData || undefined,
     };
 
     const assistantMsgPlaceholder: ChatMessage = {
@@ -527,7 +531,10 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
     }));
 
     try {
-      const historyToSend = [...get().chatMessages.slice(0, -1)];
+      const historyToSend = get().chatMessages.slice(0, -1).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
 
       const ch = new Channel<StreamChunk>((chunk) => {
         if (!chunk) return;
@@ -577,6 +584,58 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
           createdAt: new Date().toLocaleTimeString(),
         },
       ],
+    });
+  },
+
+  withdrawChatMessage: async (index: number) => {
+    const msgs = get().chatMessages;
+    if (index < 0 || index >= msgs.length) return;
+    const targetMsg = msgs[index];
+    if (!targetMsg) return;
+    const newMsgs = msgs.slice(0, index);
+    if (newMsgs.length === 0) {
+      newMsgs.push({
+        role: "assistant",
+        content: "已清空当前会话历史。您可以随时提出新的问题，或点击快捷指令开始分析。",
+        createdAt: new Date().toLocaleTimeString(),
+      });
+    }
+
+    if (targetMsg.pipelineSnapshot) {
+      const snap = targetMsg.pipelineSnapshot;
+      const current = get().pipelineData;
+      const rulesChanged =
+        !current ||
+        JSON.stringify(snap.tierConfigs) !== JSON.stringify(current.tierConfigs) ||
+        JSON.stringify(snap.imputationRules) !== JSON.stringify(current.imputationRules) ||
+        JSON.stringify(snap.customerStandards) !== JSON.stringify(current.customerStandards);
+
+      if (rulesChanged) {
+        set({ isLoading: true });
+        try {
+          const opts: PipelineOptions = {
+            asOfDate: snap.asOfDate,
+            imputationRules: snap.imputationRules,
+            customerStandards: snap.customerStandards,
+            tierConfigs: snap.tierConfigs,
+          };
+          const recomputed = await SmartARService.recomputeWithCustomRules(opts);
+          set({
+            chatMessages: newMsgs,
+            pipelineData: recomputed || snap,
+            isLoading: false,
+            toastMessage: "已撤回至该指令前，并已恢复财务治理规则与测算结果",
+          });
+          return;
+        } catch (err) {
+          console.error("Failed to rollback rules:", err);
+        }
+      }
+    }
+
+    set({
+      chatMessages: newMsgs,
+      toastMessage: "已撤回至该指令发送前状态",
     });
   },
 

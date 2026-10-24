@@ -8,7 +8,8 @@ import (
 type AIConfig struct {
 	Provider        string   `json:"provider"`        // "deepseek" | "volcengine" | "ollama" | "openai" | "qwen" | "custom"
 	BaseURL         string   `json:"baseUrl"`         // e.g. "https://api.deepseek.com/v1" or "https://ark.cn-beijing.volces.com/api/v3"
-	APIKey          string   `json:"apiKey"`          // API key
+	APIKey          string   `json:"apiKey"`          // API key (sanitized when sent to frontend)
+	HasAPIKey       bool     `json:"hasApiKey"`       // true if an API key is persisted in local configuration
 	Model           string   `json:"model"`           // active model name
 	ReasoningEffort string   `json:"reasoningEffort"` // "minimal" | "low" | "medium" | "high" | "max"
 	SavedModels     []string `json:"savedModels"`     // list of saved/custom added models
@@ -20,6 +21,7 @@ var DefaultAIConfig = AIConfig{
 	Provider:        "deepseek",
 	BaseURL:         "https://api.deepseek.com/v1",
 	APIKey:          "",
+	HasAPIKey:       false,
 	Model:           "deepseek-chat",
 	ReasoningEffort: "medium",
 	SavedModels: []string{
@@ -36,6 +38,7 @@ type ChatMessage struct {
 	ReasoningContent string              `json:"reasoningContent,omitempty"`
 	Proposal         *RuleUpdateProposal `json:"proposal,omitempty"`
 	CreatedAt        string              `json:"createdAt,omitempty"`
+	PipelineSnapshot *ar.PipelineResult  `json:"pipelineSnapshot,omitempty"`
 }
 
 // RuleUpdateProposal represents an AI-generated proposal to alter rules or master data.

@@ -41,18 +41,24 @@ func NewService() *Service {
 	appDir := filepath.Join(cfgDir, "smartar")
 	_ = os.MkdirAll(appDir, 0755)
 	cfgPath := filepath.Join(appDir, "ai_config.json")
+	return NewServiceWithPath(cfgPath)
+}
 
+// NewServiceWithPath initializes the AI service with a custom configuration file path.
+func NewServiceWithPath(cfgPath string) *Service {
 	svc := &Service{
 		config:     DefaultAIConfig,
 		configPath: cfgPath,
 		proposals:  make(map[string]*RuleUpdateProposal),
 	}
 
-	if data, err := os.ReadFile(cfgPath); err == nil && len(data) > 0 {
-		var loaded AIConfig
-		if json.Unmarshal(data, &loaded) == nil {
-			if loaded.Provider != "" {
-				svc.config = loaded
+	if cfgPath != "" {
+		if data, err := os.ReadFile(cfgPath); err == nil && len(data) > 0 {
+			var loaded AIConfig
+			if json.Unmarshal(data, &loaded) == nil {
+				if loaded.Provider != "" {
+					svc.config = loaded
+				}
 			}
 		}
 	}
@@ -64,13 +70,30 @@ func NewService() *Service {
 func (s *Service) GetConfig() AIConfig {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.config
+	cfg := s.config
+	cfg.HasAPIKey = cfg.APIKey != ""
+	return cfg
+}
+
+// GetClientConfig returns AI settings sanitized for frontend display (APIKey is wiped, HasAPIKey is preserved).
+func (s *Service) GetClientConfig() AIConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	clientCfg := s.config
+	clientCfg.HasAPIKey = clientCfg.APIKey != ""
+	clientCfg.APIKey = "" // Never expose actual APIKey to frontend
+	return clientCfg
 }
 
 // SaveConfig persists new AI settings to disk.
 func (s *Service) SaveConfig(cfg AIConfig) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if cfg.APIKey == "" {
+		cfg.APIKey = s.config.APIKey
+	}
+	cfg.HasAPIKey = cfg.APIKey != ""
 
 	if cfg.BaseURL == "" {
 		switch cfg.Provider {
@@ -285,6 +308,24 @@ func (s *Service) StreamChat(
 
 	anonymizer := NewAnonymizer()
 	shouldAnonymize := cfg.Anonymize
+	if shouldAnonymize {
+		var allNames []string
+		if currentPipeline != nil {
+			for _, r := range currentPipeline.NormalRecords {
+				allNames = append(allNames, r.CustName, r.RawCustName)
+			}
+			for _, r := range currentPipeline.SuspendedRecords {
+				allNames = append(allNames, r.CustName, r.RawCustName)
+			}
+		}
+		if currentRules != nil {
+			for _, cs := range currentRules.CustomerStandards {
+				allNames = append(allNames, cs.Name)
+				allNames = append(allNames, cs.Aliases...)
+			}
+		}
+		anonymizer.SeedCustomers(allNames)
+	}
 	maskName := func(name string) string {
 		if shouldAnonymize {
 			return anonymizer.MaskCustomer(name)
@@ -460,13 +501,17 @@ func (s *Service) StreamChat(
 	apiMessages = append(apiMessages, openai.SystemMessage(systemPrompt))
 
 	for _, m := range history {
+		msgContent := m.Content
+		if shouldAnonymize {
+			msgContent = anonymizer.MaskText(msgContent)
+		}
 		switch m.Role {
 		case "user":
-			apiMessages = append(apiMessages, openai.UserMessage(m.Content))
+			apiMessages = append(apiMessages, openai.UserMessage(msgContent))
 		case "assistant":
-			apiMessages = append(apiMessages, openai.AssistantMessage(m.Content))
+			apiMessages = append(apiMessages, openai.AssistantMessage(msgContent))
 		case "system":
-			apiMessages = append(apiMessages, openai.SystemMessage(m.Content))
+			apiMessages = append(apiMessages, openai.SystemMessage(msgContent))
 		}
 	}
 
@@ -496,23 +541,46 @@ func (s *Service) StreamChat(
 		var contentBuilder strings.Builder
 		var reasoningBuilder strings.Builder
 
+		var tokenUnmasker *StreamingUnmasker
+		var reasoningUnmasker *StreamingUnmasker
+		if shouldAnonymize {
+			tokenUnmasker = NewStreamingUnmasker(anonymizer, func(unmasked string) {
+				_ = stream.Send(StreamChunk{Type: "token", Content: unmasked})
+			})
+			reasoningUnmasker = NewStreamingUnmasker(anonymizer, func(unmasked string) {
+				_ = stream.Send(StreamChunk{Type: "reasoning", Content: unmasked})
+			})
+		}
+
 		for streamRes.Next() {
 			chunk := streamRes.Current()
 			rawJSON := chunk.RawJSON()
 
 			if rVal := gjson.Get(rawJSON, "choices.0.delta.reasoning_content").String(); rVal != "" {
 				reasoningBuilder.WriteString(rVal)
-				_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal})
+				if shouldAnonymize {
+					reasoningUnmasker.Feed(rVal)
+				} else {
+					_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal})
+				}
 			} else if rVal2 := gjson.Get(rawJSON, "choices.0.delta.reasoning").String(); rVal2 != "" {
 				reasoningBuilder.WriteString(rVal2)
-				_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal2})
+				if shouldAnonymize {
+					reasoningUnmasker.Feed(rVal2)
+				} else {
+					_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal2})
+				}
 			}
 
 			if len(chunk.Choices) > 0 {
 				delta := chunk.Choices[0].Delta
 				if delta.Content != "" {
 					contentBuilder.WriteString(delta.Content)
-					_ = stream.Send(StreamChunk{Type: "token", Content: delta.Content})
+					if shouldAnonymize {
+						tokenUnmasker.Feed(delta.Content)
+					} else {
+						_ = stream.Send(StreamChunk{Type: "token", Content: delta.Content})
+					}
 				}
 
 				for _, tc := range delta.ToolCalls {
@@ -532,6 +600,11 @@ func (s *Service) StreamChat(
 					}
 				}
 			}
+		}
+
+		if shouldAnonymize {
+			reasoningUnmasker.Flush()
+			tokenUnmasker.Flush()
 		}
 
 		if err := streamRes.Err(); err != nil {
@@ -580,7 +653,7 @@ func (s *Service) StreamChat(
 
 		for _, idx := range indices {
 			tc := toolCallsMap[idx]
-			toolResult, execErr := s.executeTool(ctx, tc.Name, tc.Arguments.String(), stream, currentPipeline, currentRules, maskName)
+			toolResult, execErr := s.executeTool(ctx, tc.Name, tc.Arguments.String(), stream, currentPipeline, currentRules, maskName, anonymizer, shouldAnonymize)
 			if execErr != nil {
 				toolResult = fmt.Sprintf("工具执行错误: %v", execErr)
 			}
@@ -600,6 +673,8 @@ func (s *Service) executeTool(
 	currentPipeline *ar.PipelineResult,
 	currentRules *ar.RuleConfigPackage,
 	maskName func(string) string,
+	anonymizer *Anonymizer,
+	shouldAnonymize bool,
 ) (string, error) {
 	switch toolName {
 	case "get_pipeline_summary":
@@ -745,15 +820,30 @@ func (s *Service) executeTool(
 
 	case "get_current_rules":
 		_ = stream.Send(StreamChunk{Type: "tool_start", Content: "正在读取当前系统规则与标准配置..."})
-		if currentRules == nil {
-			pkg := ar.RuleConfigPackage{
+		var pkg ar.RuleConfigPackage
+		if currentRules != nil {
+			pkg = *currentRules
+		} else {
+			pkg = ar.RuleConfigPackage{
 				ImputationRules:   ar.DefaultImputationConfig,
 				CustomerStandards: ar.DefaultCustomerStandards,
 				TierConfigs:       ar.DefaultTierConfigs,
 			}
-			currentRules = &pkg
 		}
-		data, _ := json.MarshalIndent(currentRules, "", "  ")
+		if shouldAnonymize {
+			maskedStandards := make([]ar.CustomerStandard, len(pkg.CustomerStandards))
+			for i, cs := range pkg.CustomerStandards {
+				maskedStandards[i] = cs
+				maskedStandards[i].Name = maskName(cs.Name)
+				var maskedAliases []string
+				for _, alias := range cs.Aliases {
+					maskedAliases = append(maskedAliases, maskName(alias))
+				}
+				maskedStandards[i].Aliases = maskedAliases
+			}
+			pkg.CustomerStandards = maskedStandards
+		}
+		data, _ := json.MarshalIndent(pkg, "", "  ")
 		_ = stream.Send(StreamChunk{Type: "tool_end", Content: "已读取当前规则配置。"})
 		return string(data), nil
 
@@ -859,6 +949,17 @@ func (s *Service) executeTool(
 			}
 		}
 
+		if shouldAnonymize && anonymizer != nil {
+			summary = anonymizer.Unmask(summary)
+			diffDesc = anonymizer.Unmask(diffDesc)
+			for i := range newRules.CustomerStandards {
+				newRules.CustomerStandards[i].Name = anonymizer.Unmask(newRules.CustomerStandards[i].Name)
+				for j := range newRules.CustomerStandards[i].Aliases {
+					newRules.CustomerStandards[i].Aliases[j] = anonymizer.Unmask(newRules.CustomerStandards[i].Aliases[j])
+				}
+			}
+		}
+
 		propID := fmt.Sprintf("prop_%d_%d", time.Now().Unix(), time.Now().Nanosecond()%1000)
 		proposal := &RuleUpdateProposal{
 			ProposalID:      propID,
@@ -902,6 +1003,26 @@ func (s *Service) GenerateAuditReport(
 		cfg = DefaultAIConfig
 	}
 
+	anonymizer := NewAnonymizer()
+	shouldAnonymize := cfg.Anonymize
+	if shouldAnonymize {
+		var allNames []string
+		for _, r := range pipelineResult.NormalRecords {
+			allNames = append(allNames, r.CustName, r.RawCustName)
+		}
+		for _, r := range pipelineResult.SuspendedRecords {
+			allNames = append(allNames, r.CustName, r.RawCustName)
+		}
+		anonymizer.SeedCustomers(allNames)
+	}
+
+	maskName := func(name string) string {
+		if shouldAnonymize {
+			return anonymizer.MaskCustomer(name)
+		}
+		return name
+	}
+
 	_ = stream.Send(StreamChunk{Type: "tool_start", Content: "正在启动报告生成工作流：数据清洗与指标聚合..."})
 
 	var agingLines []string
@@ -942,7 +1063,7 @@ func (s *Service) GenerateAuditReport(
 		}
 		top5Lines = append(top5Lines, fmt.Sprintf(
 			"| %d | %s | %s | ¥%.2f | %.1f%% |",
-			i+1, cb.name, cb.level, cb.balance, pct,
+			i+1, maskName(cb.name), cb.level, cb.balance, pct,
 		))
 	}
 	top5Ratio := 0.0
@@ -1063,23 +1184,51 @@ func (s *Service) GenerateAuditReport(
 	streamRes := client.Chat.Completions.NewStreaming(ctx, params)
 	var fullReport strings.Builder
 
+	var tokenUnmasker *StreamingUnmasker
+	var reasoningUnmasker *StreamingUnmasker
+	if shouldAnonymize {
+		tokenUnmasker = NewStreamingUnmasker(anonymizer, func(unmasked string) {
+			_ = stream.Send(StreamChunk{Type: "token", Content: unmasked})
+		})
+		reasoningUnmasker = NewStreamingUnmasker(anonymizer, func(unmasked string) {
+			_ = stream.Send(StreamChunk{Type: "reasoning", Content: unmasked})
+		})
+	}
+
 	for streamRes.Next() {
 		chunk := streamRes.Current()
 		rawJSON := chunk.RawJSON()
 
 		if rVal := gjson.Get(rawJSON, "choices.0.delta.reasoning_content").String(); rVal != "" {
-			_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal})
+			if shouldAnonymize {
+				reasoningUnmasker.Feed(rVal)
+			} else {
+				_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal})
+			}
 		} else if rVal2 := gjson.Get(rawJSON, "choices.0.delta.reasoning").String(); rVal2 != "" {
-			_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal2})
+			if shouldAnonymize {
+				reasoningUnmasker.Feed(rVal2)
+			} else {
+				_ = stream.Send(StreamChunk{Type: "reasoning", Content: rVal2})
+			}
 		}
 
 		if len(chunk.Choices) > 0 {
 			delta := chunk.Choices[0].Delta
 			if delta.Content != "" {
 				fullReport.WriteString(delta.Content)
-				_ = stream.Send(StreamChunk{Type: "token", Content: delta.Content})
+				if shouldAnonymize {
+					tokenUnmasker.Feed(delta.Content)
+				} else {
+					_ = stream.Send(StreamChunk{Type: "token", Content: delta.Content})
+				}
 			}
 		}
+	}
+
+	if shouldAnonymize {
+		reasoningUnmasker.Flush()
+		tokenUnmasker.Flush()
 	}
 
 	if err := streamRes.Err(); err != nil {
@@ -1088,8 +1237,13 @@ func (s *Service) GenerateAuditReport(
 
 	_ = stream.Send(StreamChunk{Type: "done"})
 
+	finalContent := fullReport.String()
+	if shouldAnonymize {
+		finalContent = anonymizer.Unmask(finalContent)
+	}
+
 	return &ReportResult{
-		MarkdownContent:  fullReport.String(),
+		MarkdownContent:  finalContent,
 		ExecutiveSummary: fmt.Sprintf("基准日%s应收账款未收敞口¥%.2f，计提坏账准备¥%.2f（综合计提率%.2f%%），前五大客户集中度%.1f%%。", pipelineResult.AsOfDate, pipelineResult.NormalBalTotal, pipelineResult.NormalProvTotal, pipelineResult.OverallProvRate*100.0, top5Ratio),
 		CreatedAt:        time.Now().Format("2006-01-02 15:04:05"),
 	}, nil

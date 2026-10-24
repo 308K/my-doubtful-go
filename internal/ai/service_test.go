@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"my-doubtful-go/internal/ar"
@@ -27,8 +29,112 @@ func TestAnonymizer(t *testing.T) {
 	}
 }
 
+func TestStreamingUnmasker(t *testing.T) {
+	anon := NewAnonymizer()
+	c1 := "北京华联综合超市股份有限公司"
+	c2 := "上海联华快客便利有限公司"
+	m1 := anon.MaskCustomer(c1) // 企业客户_01
+	m2 := anon.MaskCustomer(c2) // 企业客户_02
+
+	var out strings.Builder
+	unmasker := NewStreamingUnmasker(anon, func(s string) {
+		out.WriteString(s)
+	})
+
+	// Test chunk split across boundary
+	chunks := []string{
+		"经审计查明，重点欠款方为",
+		"企",
+		"业",
+		"客户",
+		"_" + m1[len("企业客户_"):],
+		"，其逾期账目严重；另一关联方为",
+		m2,
+		"，未收余额正常。",
+	}
+
+	for _, ch := range chunks {
+		unmasker.Feed(ch)
+	}
+	unmasker.Flush()
+
+	expected := "经审计查明，重点欠款方为" + c1 + "，其逾期账目严重；另一关联方为" + c2 + "，未收余额正常。"
+	if out.String() != expected {
+		t.Fatalf("expected:\n%s\ngot:\n%s", expected, out.String())
+	}
+}
+
+func TestMaskText(t *testing.T) {
+	anon := NewAnonymizer()
+	anon.SeedCustomers([]string{
+		"北京华联",
+		"北京华联综合超市股份有限公司",
+		"深圳腾讯计算机系统有限公司",
+	})
+
+	input := "请详细分析北京华联综合超市股份有限公司以及深圳腾讯计算机系统有限公司的账目情况"
+	masked := anon.MaskText(input)
+	if strings.Contains(masked, "北京华联综合超市股份有限公司") || strings.Contains(masked, "深圳腾讯计算机系统有限公司") {
+		t.Fatalf("expected masked text to not contain real names, got: %s", masked)
+	}
+	if !strings.Contains(masked, "企业客户_01") || !strings.Contains(masked, "企业客户_02") {
+		t.Fatalf("expected masked tokens in text, got: %s", masked)
+	}
+
+	// Verify unmasking back
+	unmasked := anon.Unmask(masked)
+	if unmasked != input {
+		t.Fatalf("expected unmask to restore original, got: %s", unmasked)
+	}
+}
+
+func TestAPIKeySanitization(t *testing.T) {
+	tmpPath := filepath.Join(t.TempDir(), "ai_config.json")
+	svc := NewServiceWithPath(tmpPath)
+	cfg := svc.GetConfig()
+	cfg.APIKey = "sk-test-super-secret-key-12345"
+	if err := svc.SaveConfig(cfg); err != nil {
+		t.Fatalf("save config failed: %v", err)
+	}
+
+	// Internal config must have the key
+	internalCfg := svc.GetConfig()
+	if internalCfg.APIKey != "sk-test-super-secret-key-12345" {
+		t.Fatalf("expected internal APIKey preserved, got: %s", internalCfg.APIKey)
+	}
+	if !internalCfg.HasAPIKey {
+		t.Fatalf("expected HasAPIKey to be true")
+	}
+
+	// Client config sent to frontend must have APIKey wiped and HasAPIKey = true
+	clientCfg := svc.GetClientConfig()
+	if clientCfg.APIKey != "" {
+		t.Fatalf("expected client APIKey to be empty, got: %s", clientCfg.APIKey)
+	}
+	if !clientCfg.HasAPIKey {
+		t.Fatalf("expected client HasAPIKey to be true")
+	}
+
+	// Updating config without providing new APIKey must retain existing key
+	updateCfg := clientCfg
+	updateCfg.Model = "new-active-model"
+	updateCfg.APIKey = "" // user left empty in modal
+	if err := svc.SaveConfig(updateCfg); err != nil {
+		t.Fatalf("save config with empty key failed: %v", err)
+	}
+
+	reloadedInternal := svc.GetConfig()
+	if reloadedInternal.APIKey != "sk-test-super-secret-key-12345" {
+		t.Fatalf("expected preserved APIKey after save with empty key, got: %s", reloadedInternal.APIKey)
+	}
+	if reloadedInternal.Model != "new-active-model" {
+		t.Fatalf("expected updated model, got: %s", reloadedInternal.Model)
+	}
+}
+
 func TestProposalWorkflow(t *testing.T) {
-	svc := NewService()
+	tmpPath := filepath.Join(t.TempDir(), "ai_config.json")
+	svc := NewServiceWithPath(tmpPath)
 
 	propID := "test_prop_001"
 	origRules := ar.RuleConfigPackage{
@@ -88,7 +194,8 @@ func TestProposalWorkflow(t *testing.T) {
 }
 
 func TestConfigPersistence(t *testing.T) {
-	svc := NewService()
+	tmpPath := filepath.Join(t.TempDir(), "ai_config.json")
+	svc := NewServiceWithPath(tmpPath)
 	cfg := svc.GetConfig()
 	if cfg.Provider == "" {
 		t.Fatalf("expected default provider, got empty")
@@ -106,9 +213,9 @@ func TestConfigPersistence(t *testing.T) {
 }
 
 func TestToolsInfer(t *testing.T) {
-	svc := NewService()
+	tmpPath := filepath.Join(t.TempDir(), "ai_config.json")
+	svc := NewServiceWithPath(tmpPath)
 	_ = svc
-	// Basic sanity check that context cancels without panic
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	_ = ctx

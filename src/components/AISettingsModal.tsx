@@ -12,8 +12,7 @@ import {
   Shield,
   Check,
   AlertCircle,
-  Eye,
-  EyeOff,
+  ShieldCheck,
   RefreshCw,
   Plus,
   Trash2,
@@ -64,7 +63,7 @@ export const AISettingsModal: React.FC = () => {
 
   const [provider, setProvider] = useState<string>("deepseek");
   const [baseUrl, setBaseUrl] = useState<string>("https://api.deepseek.com/v1");
-  const [apiKey, setApiKey] = useState<string>("");
+  const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [model, setModel] = useState<string>("deepseek-chat");
   const [savedModels, setSavedModels] = useState<string[]>([
     "deepseek-chat",
@@ -76,7 +75,7 @@ export const AISettingsModal: React.FC = () => {
   const [fetchedModels, setFetchedModels] = useState<string[]>([]);
   const [anonymize, setAnonymize] = useState<boolean>(false);
 
-  const [showKey, setShowKey] = useState<boolean>(false);
+
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -87,7 +86,7 @@ export const AISettingsModal: React.FC = () => {
     if (aiConfig) {
       setProvider(aiConfig.provider || "deepseek");
       setBaseUrl(aiConfig.baseUrl || "https://api.deepseek.com/v1");
-      setApiKey(aiConfig.apiKey || "");
+      setApiKeyInput("");
       setModel(aiConfig.model || "deepseek-chat");
       setSavedModels(
         aiConfig.savedModels && aiConfig.savedModels.length > 0
@@ -121,7 +120,8 @@ export const AISettingsModal: React.FC = () => {
       const probeCfg: AIConfig = {
         provider,
         baseUrl: baseUrl.trim(),
-        apiKey: apiKey.trim(),
+        apiKey: apiKeyInput.trim(),
+        hasApiKey: !!aiConfig?.hasApiKey,
         model: model.trim(),
         reasoningEffort: aiConfig?.reasoningEffort || "medium",
         savedModels,
@@ -178,7 +178,8 @@ export const AISettingsModal: React.FC = () => {
       const cfg: AIConfig = {
         provider,
         baseUrl: baseUrl.trim(),
-        apiKey: apiKey.trim(),
+        apiKey: apiKeyInput.trim(),
+        hasApiKey: !!aiConfig?.hasApiKey,
         model: model.trim(),
         reasoningEffort: aiConfig?.reasoningEffort || "medium",
         savedModels,
@@ -201,7 +202,8 @@ export const AISettingsModal: React.FC = () => {
     await saveAIConfig({
       provider,
       baseUrl: baseUrl.trim(),
-      apiKey: apiKey.trim(),
+      apiKey: apiKeyInput.trim(),
+      hasApiKey: !!aiConfig?.hasApiKey || !!apiKeyInput.trim(),
       model: model.trim(),
       reasoningEffort: aiConfig?.reasoningEffort || "medium",
       savedModels: currentList,
@@ -283,24 +285,35 @@ export const AISettingsModal: React.FC = () => {
                 API访问密钥 (API Key)
               </span>
               <span className="text-[11px] font-normal text-zinc-400">
-                {provider === "ollama" ? "本地部署无需填写" : "保存在本机安全目录"}
+                {provider === "ollama" ? "本地部署无需填写" : "保存在本机专属目录"}
               </span>
             </label>
-            <div className="relative">
+            <div>
               <input
-                type={showKey ? "text" : "password"}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={provider === "ollama" ? "ollama (选填)" : "sk-..."}
-                className="w-full pl-3 pr-10 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-white focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white transition-all"
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder={
+                  aiConfig?.hasApiKey
+                    ? "已安全保存 (输入新Key以覆盖更新)"
+                    : provider === "ollama"
+                    ? "ollama (选填)"
+                    : "输入API Key，如sk-..."
+                }
+                className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-white focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white transition-all"
               />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-              >
-                {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              </button>
+              {aiConfig?.hasApiKey ? (
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 mt-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span>凭据已安全保存在本地（已脱敏隐藏，不可回显）</span>
+                </div>
+              ) : (
+                <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5">
+                  {provider === "ollama"
+                    ? "本地模型服务通常无需API Key认证"
+                    : "初次使用请输入服务商提供的API Key进行鉴权"}
+                </div>
+              )}
             </div>
           </div>
 

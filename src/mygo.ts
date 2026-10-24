@@ -8,6 +8,7 @@ export interface AIConfig {
   provider: string;
   baseUrl: string;
   apiKey: string;
+  hasApiKey: boolean;
   model: string;
   reasoningEffort: string;
   savedModels: string[];
@@ -78,6 +79,7 @@ export interface ChatMessage {
   reasoningContent?: string;
   proposal?: RuleUpdateProposal;
   createdAt?: string;
+  pipelineSnapshot?: PipelineResult;
 }
 
 export interface CustomerRiskSummary {
@@ -297,7 +299,7 @@ export const SmartARService = {
   fetchAIModels(cfg: AIConfig): Promise<string[]> {
     return call("SmartARService.FetchAIModels", cfg);
   },
-  /** GetAIConfig returns user-configured AI model and credentials. */
+  /** GetAIConfig returns user-configured AI model and credentials sanitized for frontend (APIKey is wiped). */
   getAIConfig(): Promise<AIConfig> {
     return call("SmartARService.GetAIConfig");
   },
