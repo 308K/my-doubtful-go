@@ -180,25 +180,58 @@ export function formatPercent(ratio: number, digits = 1): string {
 }
 
 /**
- * 按照当前系统 locale 格式化日期字符串 (YYYY-MM-DD)
+ * 按照当前系统 locale 格式化日期字符串 (YYYY-MM-DD / YYYY/MM/DD)
  */
 export function formatSystemDate(dateStr: string): string {
   if (!dateStr) return "";
-  const parts = dateStr.split("-");
-  if (parts.length !== 3) return dateStr;
-  const y = Number(parts[0]);
-  const m = Number(parts[1]);
-  const d = Number(parts[2]);
-  if (isNaN(y) || isNaN(m) || isNaN(d)) return dateStr;
-  const date = new Date(y, m - 1, d);
+  const m = String(dateStr).match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (!m) return dateStr;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (isNaN(y) || isNaN(mo) || isNaN(d)) return dateStr;
+  const date = new Date(y, mo - 1, d);
   try {
-    return new Intl.DateTimeFormat(undefined, {
+    const navLang = typeof navigator !== "undefined" ? navigator.language : "";
+    const locale = navLang && !navLang.startsWith("en") ? navLang : "zh-CN";
+    return new Intl.DateTimeFormat(locale, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     }).format(date);
   } catch {
-    return dateStr;
+    return `${y}/${String(mo).padStart(2, "0")}/${String(d).padStart(2, "0")}`;
+  }
+}
+
+/**
+ * 按照当前系统 locale 格式化日期时间字符串 (YYYY-MM-DD HH:mm:ss)
+ */
+export function formatSystemDateTime(dateTimeStr: string): string {
+  if (!dateTimeStr) return "";
+  const m = String(dateTimeStr).match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (!m) return dateTimeStr;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const hh = m[4] ? Number(m[4]) : 0;
+  const mm = m[5] ? Number(m[5]) : 0;
+  const ss = m[6] ? Number(m[6]) : 0;
+  const date = new Date(y, mo - 1, d, hh, mm, ss);
+  try {
+    const navLang = typeof navigator !== "undefined" ? navigator.language : "";
+    const locale = navLang && !navLang.startsWith("en") ? navLang : "zh-CN";
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(date);
+  } catch {
+    return dateTimeStr;
   }
 }
 

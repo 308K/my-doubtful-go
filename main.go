@@ -40,6 +40,7 @@ type SmartARService struct {
 	lastBytes  []byte
 	lastSource string
 	lastResult *ar.PipelineResult
+	lastOpts   ar.PipelineOptions
 }
 
 // GetSystemInfo returns host platform and Go kernel metadata.
@@ -48,8 +49,17 @@ func (s *SmartARService) GetSystemInfo() SystemInfo {
 		OS:         runtime.GOOS,
 		Arch:       runtime.GOARCH,
 		GoVersion:  runtime.Version(),
-		AppVersion: "1.1.0",
+		AppVersion: "1.2.0",
 		Engine:     "Pure Go + Excelize v2 (No CGo)",
+	}
+}
+
+// GetDefaultRulePackage returns the default imputation, master data standards, and tier configs.
+func (s *SmartARService) GetDefaultRulePackage() ar.RuleConfigPackage {
+	return ar.RuleConfigPackage{
+		ImputationRules:   ar.DefaultImputationConfig,
+		CustomerStandards: ar.DefaultCustomerStandards,
+		TierConfigs:       ar.DefaultTierConfigs,
 	}
 }
 
@@ -59,15 +69,22 @@ func (s *SmartARService) LoadBuiltInSample(asOfDate string) (*ar.PipelineResult,
 	defer s.mu.Unlock()
 
 	if asOfDate == "" {
-		asOfDate = "2026-06-30"
+		if s.lastOpts.AsOfDate != "" {
+			asOfDate = s.lastOpts.AsOfDate
+		} else {
+			asOfDate = "2026-06-30"
+		}
 	}
-	res, err := ar.RunPipelineFromBytes(embeddedSampleExcel, "应收账款明细表_原始数据.xlsx", asOfDate)
+	opts := s.lastOpts
+	opts.AsOfDate = asOfDate
+	res, err := ar.RunPipelineWithOptions(embeddedSampleExcel, "应收账款明细表_原始数据.xlsx", opts)
 	if err != nil {
 		return nil, err
 	}
 	s.lastBytes = embeddedSampleExcel
 	s.lastSource = "应收账款明细表_原始数据.xlsx"
 	s.lastResult = res
+	s.lastOpts = opts
 	return res, nil
 }
 
@@ -103,16 +120,23 @@ func (s *SmartARService) ProcessFileFromPath(filePath string, asOfDate string) (
 	defer s.mu.Unlock()
 
 	if asOfDate == "" {
-		asOfDate = "2026-06-30"
+		if s.lastOpts.AsOfDate != "" {
+			asOfDate = s.lastOpts.AsOfDate
+		} else {
+			asOfDate = "2026-06-30"
+		}
 	}
 	fileName := filepath.Base(filePath)
-	res, err := ar.RunPipelineFromBytes(data, fileName, asOfDate)
+	opts := s.lastOpts
+	opts.AsOfDate = asOfDate
+	res, err := ar.RunPipelineWithOptions(data, fileName, opts)
 	if err != nil {
 		return nil, err
 	}
 	s.lastBytes = data
 	s.lastSource = fileName
 	s.lastResult = res
+	s.lastOpts = opts
 	_ = mygo.App.AddRecentDocument(filePath)
 	return res, nil
 }
@@ -127,18 +151,25 @@ func (s *SmartARService) ProcessFileFromBase64(fileName string, base64Data strin
 	defer s.mu.Unlock()
 
 	if asOfDate == "" {
-		asOfDate = "2026-06-30"
+		if s.lastOpts.AsOfDate != "" {
+			asOfDate = s.lastOpts.AsOfDate
+		} else {
+			asOfDate = "2026-06-30"
+		}
 	}
 	if fileName == "" {
 		fileName = "上传应收账款明细表.xlsx"
 	}
-	res, err := ar.RunPipelineFromBytes(data, fileName, asOfDate)
+	opts := s.lastOpts
+	opts.AsOfDate = asOfDate
+	res, err := ar.RunPipelineWithOptions(data, fileName, opts)
 	if err != nil {
 		return nil, err
 	}
 	s.lastBytes = data
 	s.lastSource = fileName
 	s.lastResult = res
+	s.lastOpts = opts
 	return res, nil
 }
 
@@ -151,10 +182,70 @@ func (s *SmartARService) RecalculateWithDate(asOfDate string) (*ar.PipelineResul
 		s.lastBytes = embeddedSampleExcel
 		s.lastSource = "应收账款明细表_原始数据.xlsx"
 	}
-	res, err := ar.RunPipelineFromBytes(s.lastBytes, s.lastSource, asOfDate)
+	opts := s.lastOpts
+	opts.AsOfDate = asOfDate
+	res, err := ar.RunPipelineWithOptions(s.lastBytes, s.lastSource, opts)
 	if err != nil {
 		return nil, err
 	}
+	s.lastOpts = opts
+	s.lastResult = res
+	return res, nil
+}
+
+// RecomputeWithCustomRules re-runs the 5-step pipeline with user-customized imputation, customer master dictionary, and tier standards.
+func (s *SmartARService) RecomputeWithCustomRules(opts ar.PipelineOptions) (*ar.PipelineResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if len(s.lastBytes) == 0 {
+		s.lastBytes = embeddedSampleExcel
+		s.lastSource = "应收账款明细表_原始数据.xlsx"
+	}
+	if opts.AsOfDate == "" {
+		if s.lastOpts.AsOfDate != "" {
+			opts.AsOfDate = s.lastOpts.AsOfDate
+		} else {
+			opts.AsOfDate = "2026-06-30"
+		}
+	}
+	res, err := ar.RunPipelineWithOptions(s.lastBytes, s.lastSource, opts)
+	if err != nil {
+		return nil, err
+	}
+	s.lastOpts = opts
+	s.lastResult = res
+	return res, nil
+}
+
+// ResetToDefaultRules resets all imputation rules, customer standards, and tier configs back to the training baseline.
+func (s *SmartARService) ResetToDefaultRules(asOfDate string) (*ar.PipelineResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if asOfDate == "" {
+		if s.lastOpts.AsOfDate != "" {
+			asOfDate = s.lastOpts.AsOfDate
+		} else {
+			asOfDate = "2026-06-30"
+		}
+	}
+	if len(s.lastBytes) == 0 {
+		s.lastBytes = embeddedSampleExcel
+		s.lastSource = "应收账款明细表_原始数据.xlsx"
+	}
+	defaultImp := ar.DefaultImputationConfig
+	opts := ar.PipelineOptions{
+		AsOfDate:          asOfDate,
+		ImputationRules:   &defaultImp,
+		CustomerStandards: ar.DefaultCustomerStandards,
+		TierConfigs:       ar.DefaultTierConfigs,
+	}
+	res, err := ar.RunPipelineWithOptions(s.lastBytes, s.lastSource, opts)
+	if err != nil {
+		return nil, err
+	}
+	s.lastOpts = opts
 	s.lastResult = res
 	return res, nil
 }
@@ -173,9 +264,12 @@ func (s *SmartARService) ExportExcelReport(ctx context.Context, themeMode string
 		}
 	}
 
-	suffix := "柔和预警色卡版"
-	if themeMode == "classic" {
-		suffix = "经典预警色卡版"
+	if themeMode == "" {
+		themeMode = "classic"
+	}
+	suffix := "经典预警色卡版"
+	if themeMode == "soft" || themeMode == "mygo" {
+		suffix = "柔和预警色卡版"
 	}
 	defaultName := fmt.Sprintf("应收账款明细表_清洗后_动态公式_%s.xlsx", suffix)
 
@@ -212,9 +306,12 @@ func (s *SmartARService) QuickExportToWorkspace(themeMode string, asOfDate strin
 		}
 	}
 
-	suffix := "柔和预警色"
-	if themeMode == "classic" {
-		suffix = "经典预警色"
+	if themeMode == "" {
+		themeMode = "classic"
+	}
+	suffix := "经典预警色"
+	if themeMode == "soft" || themeMode == "mygo" {
+		suffix = "柔和预警色"
 	}
 	outName := fmt.Sprintf("应收账款智能分析报表_动态公式_%s.xlsx", suffix)
 
@@ -243,19 +340,27 @@ func (s *SmartARService) ToggleDevTools(ctx context.Context) {
 
 func init() {
 	if runtime.GOOS == "windows" {
-		// Enable Chromium Blink text-autospace layout engine (CSSTextAutoSpace) for Windows WebView2
+		// Enable Chromium Blink text-autospace layout engine and ensure system Chinese locale in WebView2
 		args := os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
 		if !strings.Contains(args, "CSSTextAutoSpace") {
 			if args != "" {
 				args += " "
 			}
 			args += "--enable-blink-features=CSSTextAutoSpace"
-			_ = os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args)
 		}
+		if !strings.Contains(args, "--lang=") {
+			if args != "" {
+				args += " "
+			}
+			args += "--lang=zh-CN"
+		}
+		_ = os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", args)
 	}
 }
 
 func main() {
+	mygo.App.SetLanguages("zh-CN", "zh-Hans", "zh")
+
 	svc := &SmartARService{}
 	mygo.Bind(svc)
 

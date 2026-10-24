@@ -331,7 +331,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="搜索客户/发票号/销售员/区域..."
-              className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-500/40 w-56"
+              className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-white focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white w-56"
             />
           </div>
 
@@ -341,7 +341,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
             <select
               value={tierFilter}
               onChange={(e) => onTierFilterChange(e.target.value)}
-              className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-800 dark:text-zinc-200 text-xs"
+              className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-800 dark:text-zinc-200 text-xs focus:outline-none focus:border-zinc-900 dark:focus:border-white focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white"
             >
               <option value="ALL">全部账龄区间</option>
               <option value="1个月以内">1个月以内 (正常 · 0-30天)</option>
@@ -356,7 +356,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
           <select
             value={regionFilter}
             onChange={(e) => onRegionFilterChange(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-800 dark:text-zinc-200 text-xs"
+            className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/70 text-zinc-800 dark:text-zinc-200 text-xs focus:outline-none focus:border-zinc-900 dark:focus:border-white focus:ring-1 focus:ring-zinc-900 dark:focus:ring-white"
           >
             <option value="ALL">全部区域</option>
             <option value="华东">华东</option>
@@ -518,7 +518,7 @@ export const ARDataTable: React.FC<ARDataTableProps> = ({
                       <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">
                         <div className="text-zinc-400">开票日 / 约定收款日</div>
                         <div className="font-mono font-semibold text-zinc-900 dark:text-white mt-0.5">
-                          {r.invoiceDate} → {r.dueDate}
+                          {formatSystemDate(r.invoiceDate)} → {formatSystemDate(r.dueDate)}
                         </div>
                       </div>
                       <div className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60">

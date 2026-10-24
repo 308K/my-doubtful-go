@@ -7,9 +7,12 @@ import { isMyGo } from "mygo-runtime";
 import {
   SmartARService,
   type ARRecord,
+  type CustomerStandard,
   type ExportResult,
+  type ImputationConfig,
   type PipelineResult,
   type SystemInfo,
+  type TierConfig,
 } from "./mygo";
 import type { PaletteMode } from "./theme";
 
@@ -26,6 +29,7 @@ interface SmartARState {
   asOfDate: string;
   paletteMode: PaletteMode;
   darkMode: boolean;
+  isRuleModalOpen: boolean;
 
   // Table & Dashboard filter states
   searchQuery: string;
@@ -40,6 +44,8 @@ interface SmartARState {
   setPaletteMode: (mode: PaletteMode) => void;
   togglePaletteMode: () => void;
   toggleDarkMode: () => void;
+  openRuleModal: () => void;
+  closeRuleModal: () => void;
   setSearchQuery: (q: string) => void;
   setTierFilter: (tier: string) => void;
   setRegionFilter: (region: string) => void;
@@ -53,6 +59,12 @@ interface SmartARState {
   loadFromFilePath: (filePath: string) => Promise<void>;
   loadFromBrowserFile: (file: File) => Promise<void>;
   changeAsOfDate: (newDate: string) => Promise<void>;
+  applyCustomRules: (rules: {
+    imputationRules: ImputationConfig;
+    customerStandards: CustomerStandard[];
+    tierConfigs: TierConfig[];
+  }) => Promise<void>;
+  resetCustomRules: () => Promise<void>;
   exportWorkbook: (quickMode?: boolean) => Promise<void>;
   revealExportedFile: (filePath: string) => Promise<void>;
 }
@@ -66,8 +78,9 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   error: null,
   toastMessage: null,
   asOfDate: "2026-06-30",
-  paletteMode: "soft",
+  paletteMode: "classic",
   darkMode: true,
+  isRuleModalOpen: false,
 
   searchQuery: "",
   tierFilter: "ALL",
@@ -93,6 +106,8 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       document.documentElement.style.colorScheme = next ? "dark" : "light";
       return { darkMode: next };
     }),
+  openRuleModal: () => set({ isRuleModalOpen: true }),
+  closeRuleModal: () => set({ isRuleModalOpen: false }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setTierFilter: (tierFilter) => set({ tierFilter }),
   setRegionFilter: (regionFilter) => set({ regionFilter }),
@@ -225,6 +240,55 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
           pipelineData: data,
           isLoading: false,
           toastMessage: `已按新基准日[${newDate}]重算账龄与坏账准备（耗时${data.durationMs.toFixed(1)}ms）`,
+        });
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : String(err),
+        isLoading: false,
+      });
+    }
+  },
+
+  applyCustomRules: async (rules) => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await SmartARService.recomputeWithCustomRules({
+        asOfDate: get().asOfDate,
+        imputationRules: rules.imputationRules,
+        customerStandards: rules.customerStandards,
+        tierConfigs: rules.tierConfigs,
+      });
+      if (data) {
+        set({
+          pipelineData: data,
+          isLoading: false,
+          isRuleModalOpen: false,
+          toastMessage: `已应用自定义规则重算全表（耗时${data.durationMs.toFixed(1)}ms）`,
+        });
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (err) {
+      set({
+        error: err instanceof Error ? err.message : String(err),
+        isLoading: false,
+      });
+    }
+  },
+
+  resetCustomRules: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const data = await SmartARService.resetToDefaultRules(get().asOfDate);
+      if (data) {
+        set({
+          pipelineData: data,
+          isLoading: false,
+          isRuleModalOpen: false,
+          toastMessage: "已恢复实训默认规则标准并完成重算",
         });
       } else {
         set({ isLoading: false });

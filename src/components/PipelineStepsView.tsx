@@ -4,9 +4,12 @@
 
 import React, { useRef, useState } from "react";
 import type { ExportResult, PipelineResult } from "../mygo";
+import { useSmartARStore } from "../store";
 import {
   formatCurrency,
   formatPercent,
+  formatSystemDate,
+  formatSystemDateTime,
   RISK_THEME_LIST,
   type PaletteMode,
 } from "../theme";
@@ -24,6 +27,7 @@ import {
   ArrowRight,
   Calculator,
   Users,
+  SlidersHorizontal,
 } from "lucide-react";
 
 interface Step1Props {
@@ -129,7 +133,7 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
               {data.sourceFileName}
             </h4>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              报表基准日：<span className="font-mono font-semibold">{data.asOfDate}</span> · 清洗时间：{data.processedAt}
+              报表基准日：<span className="font-mono font-semibold">{formatSystemDate(data.asOfDate)}</span> · 清洗时间：{formatSystemDateTime(data.processedAt)}
             </p>
 
             {/* Progress bar */}
@@ -244,6 +248,7 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
   data,
   onNextStep,
 }) => {
+  const openRuleModal = useSmartARStore((s) => s.openRuleModal);
   const [selectedMissingField, setSelectedMissingField] = useState<string>(
     data.missingSummaries[0]?.field ?? "账期"
   );
@@ -263,13 +268,23 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
             自动将客户简称/别名反查对齐至CUST001~CUST020标准主档案，并按历史有效账期众数与财务平衡恒等式修补缺失项。
           </p>
         </div>
-        <button
-          onClick={onNextStep}
-          className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-        >
-          进入Step 3：9类异常审计与分流
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openRuleModal}
+            className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-xs font-medium flex items-center gap-1.5 cursor-pointer"
+            title="自定义缺失值填充规则与客户主数据字典"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+            自定义配置规则与主数据
+          </button>
+          <button
+            onClick={onNextStep}
+            className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            进入Step 3：9类异常审计与分流
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* 8 Missing Value Categories Grid */}
@@ -334,7 +349,7 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {activeMissing.items.map((item, i) => (
-                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60">
+                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
                     <td className="px-4 py-2 font-mono">#{item.seq}</td>
                     <td className="px-4 py-2 font-mono text-zinc-800 dark:text-zinc-200">
                       {item.custCode}
@@ -383,7 +398,7 @@ export const Step2MasterAndMissingView: React.FC<Step2Props> = ({
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {data.customerStandards.map((c) => (
-                <tr key={c.code} className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60">
+                <tr key={c.code} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
                   <td className="px-4 py-2 font-mono font-semibold text-zinc-900 dark:text-zinc-100">
                     {c.code}
                   </td>
@@ -537,7 +552,7 @@ export const Step3AnomalyTriageView: React.FC<Step3Props> = ({
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {activeAnomaly.items.map((item, i) => (
-                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-850/60">
+                  <tr key={i} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
                     <td className="px-4 py-2 font-mono">#{item.seq}</td>
                     <td className="px-4 py-2 font-medium text-zinc-900 dark:text-zinc-100">
                       {item.custName} ({item.custCode})

@@ -240,6 +240,15 @@ func parseMoneyStrict(v string) (float64, bool) {
 	return val, false
 }
 
+// DefaultImputationConfig defines standard default imputation options.
+var DefaultImputationConfig = ImputationConfig{
+	TermStrategy:              "mode",
+	TermFallbackDays:          60,
+	DefaultCreditLevel:        "B",
+	OverdueGraceDays:          0,
+	LowAmountOutlierThreshold: 20000.0,
+}
+
 func getTierInfo(age int) TierConfig {
 	for _, t := range DefaultTierConfigs {
 		if age <= t.MaxDays {
@@ -247,6 +256,18 @@ func getTierInfo(age int) TierConfig {
 		}
 	}
 	return DefaultTierConfigs[len(DefaultTierConfigs)-1]
+}
+
+func matchTier(age int, tiers []TierConfig) TierConfig {
+	if len(tiers) == 0 {
+		return getTierInfo(age)
+	}
+	for _, t := range tiers {
+		if age <= t.MaxDays {
+			return t
+		}
+	}
+	return tiers[len(tiers)-1]
 }
 
 func lookupCustomer(rawCode, rawName string, nameMap, aliasMap, codeMap map[string]CustomerStandard) CustomerStandard {
@@ -291,15 +312,47 @@ func daysBetween(a, b time.Time) int {
 	return int(aUTC.Sub(bUTC).Hours() / 24)
 }
 
-// RunPipelineFromBytes executes the complete 5-step SmartAR cleaning, audit, and aging pipeline on an Excel file buffer.
+// RunPipelineFromBytes executes the pipeline using default standards and a target asOfDate string.
 func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string) (*PipelineResult, error) {
+	return RunPipelineWithOptions(data, sourceFileName, PipelineOptions{AsOfDate: asOfDateStr})
+}
+
+// RunPipelineWithOptions executes the 5-step SmartAR pipeline using custom or default rule configurations.
+func RunPipelineWithOptions(data []byte, sourceFileName string, opts PipelineOptions) (*PipelineResult, error) {
 	startTime := time.Now()
 
 	asOfDate := time.Date(2026, 6, 30, 0, 0, 0, 0, time.UTC)
-	if strings.TrimSpace(asOfDateStr) != "" {
-		if parsed, ok := parseDate(asOfDateStr); ok {
+	if strings.TrimSpace(opts.AsOfDate) != "" {
+		if parsed, ok := parseDate(opts.AsOfDate); ok {
 			asOfDate = parsed
 		}
+	}
+
+	imputation := DefaultImputationConfig
+	if opts.ImputationRules != nil {
+		imputation = *opts.ImputationRules
+		if imputation.TermFallbackDays <= 0 {
+			imputation.TermFallbackDays = 60
+		}
+		if imputation.DefaultCreditLevel == "" {
+			imputation.DefaultCreditLevel = "B"
+		}
+		if imputation.LowAmountOutlierThreshold <= 0 {
+			imputation.LowAmountOutlierThreshold = 20000.0
+		}
+		if imputation.TermStrategy == "" {
+			imputation.TermStrategy = "mode"
+		}
+	}
+
+	custStandards := DefaultCustomerStandards
+	if len(opts.CustomerStandards) > 0 {
+		custStandards = opts.CustomerStandards
+	}
+
+	tierConfigs := DefaultTierConfigs
+	if len(opts.TierConfigs) > 0 {
+		tierConfigs = opts.TierConfigs
 	}
 
 	f, err := excelize.OpenReader(bytes.NewReader(data), excelize.Options{RawCellValue: true})
@@ -323,7 +376,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 	nameToStd := make(map[string]CustomerStandard)
 	aliasToStd := make(map[string]CustomerStandard)
 	codeToStd := make(map[string]CustomerStandard)
-	for _, std := range DefaultCustomerStandards {
+	for _, std := range custStandards {
 		codeToStd[std.Code] = std
 		nameToStd[std.Name] = std
 		for _, alias := range std.Aliases {
@@ -553,6 +606,9 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 		var credit string
 		if rawCredit == "" || rawCredit == "None" || rawCredit == "null" {
 			credit = stdCred
+			if credit == "" {
+				credit = imputation.DefaultCreditLevel
+			}
 			repairedFields = append(repairedFields, "信用等级")
 			missingLogs["信用等级"] = append(missingLogs["信用等级"], MissingLogEntry{
 				Field:       "信用等级",
@@ -569,6 +625,9 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				credit = mapped
 			} else {
 				credit = stdCred
+				if credit == "" {
+					credit = imputation.DefaultCreditLevel
+				}
 			}
 		}
 
@@ -584,11 +643,22 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 		// 缺失值 2: 账期(天)
 		var term int
 		if rawTerm == "" || !reAllDigits.MatchString(rawTerm) {
-			mode, exists := custTermModes[stdCode]
-			if !exists {
-				mode = 60
+			var termVal int
+			var ruleDesc string
+			if imputation.TermStrategy == "fixed" {
+				termVal = imputation.TermFallbackDays
+				ruleDesc = fmt.Sprintf("按统一固定账期%d天填充", termVal)
+			} else {
+				mode, exists := custTermModes[stdCode]
+				if !exists || mode <= 0 {
+					termVal = imputation.TermFallbackDays
+					ruleDesc = fmt.Sprintf("无历史众数，按默认缺省%d天填充", termVal)
+				} else {
+					termVal = mode
+					ruleDesc = fmt.Sprintf("按客户历史众数%d天填充", mode)
+				}
 			}
-			term = mode
+			term = termVal
 			rawDisplay := rawTerm
 			if rawDisplay == "" {
 				rawDisplay = "空缺"
@@ -601,7 +671,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustName:    stdName,
 				RawValue:    rawDisplay,
 				FilledValue: fmt.Sprintf("%d天", term),
-				RuleDesc:    fmt.Sprintf("按客户历史众数%d天填充", term),
+				RuleDesc:    ruleDesc,
 			})
 		} else {
 			term, _ = strconv.Atoi(rawTerm)
@@ -761,7 +831,11 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 
 		// 缺失值 7 & 异常类型 5: 逾期天数
 		calcOverdue := 0
-		if diff := daysBetween(asOfDate, dueDate); diff > 0 {
+		grace := imputation.OverdueGraceDays
+		if grace < 0 {
+			grace = 0
+		}
+		if diff := daysBetween(asOfDate, dueDate) - grace; diff > 0 {
 			calcOverdue = diff
 		}
 		if rawOverdue == "" || rawOverdue == "None" || rawOverdue == "null" {
@@ -870,7 +944,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				Description: fmt.Sprintf("已收=%.2f等于应收=%.2f，未收余额为0，款项已结清却仍在未核销明细挂账", recAmt, arAmt),
 				Action:      suspendAction,
 			})
-		} else if arAmt < 20000 || arAmt >= 5000000 || seq == 18 || seq == 42 || seq == 47 || seq == 54 || seq == 96 || seq == 106 || seq == 115 {
+		} else if arAmt < imputation.LowAmountOutlierThreshold || arAmt >= 5000000 || seq == 18 || seq == 42 || seq == 47 || seq == 54 || seq == 96 || seq == 106 || seq == 115 {
 			// 异常类型 7: 金额离群 / 低于合理阈值（条数 7）
 			isSuspended = true
 			suspendType = "金额离群 / 低于合理阈值"
@@ -883,7 +957,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 				CustCode:    stdCode,
 				CustName:    stdName,
 				InvoiceNo:   invNo,
-				Description: fmt.Sprintf("应收金额=%.2f元，属于极端极大离群值或低于2万元工业业务合理阈值", arAmt),
+				Description: fmt.Sprintf("应收金额=%.2f元，属于极端极大离群值或低于%.0f元工业业务合理阈值", arAmt, imputation.LowAmountOutlierThreshold),
 				Action:      suspendAction,
 			})
 		}
@@ -891,7 +965,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 		// =====================================================================
 		// Step 4: 账龄测算与坏账准备计提 + 预警等级映射
 		// =====================================================================
-		tier := getTierInfo(ageDays)
+		tier := matchTier(ageDays, tierConfigs)
 		effBal := balAmt
 		if effBal < 0 {
 			effBal = 0
@@ -1005,7 +1079,7 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 	var overdueBal float64
 
 	tierMap := make(map[string]*TierSummaryRow)
-	for _, tc := range DefaultTierConfigs {
+	for _, tc := range tierConfigs {
 		tierMap[tc.Name] = &TierSummaryRow{
 			AgingTier:       tc.Name,
 			RangeText:       tc.RangeText,
@@ -1162,7 +1236,8 @@ func RunPipelineFromBytes(data []byte, sourceFileName string, asOfDateStr string
 		NormalRecords:      normalRecords,
 		SuspendedRecords:   suspendedRecords,
 		AllRecords:         allRecords,
-		CustomerStandards:  DefaultCustomerStandards,
-		TierConfigs:        DefaultTierConfigs,
+		CustomerStandards:  custStandards,
+		TierConfigs:        tierConfigs,
+		ImputationRules:    imputation,
 	}, nil
 }

@@ -8,10 +8,77 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
 )
+
+// buildTierNameFormula generates a nested IF formula for aging tier name based on custom tiers.
+func buildTierNameFormula(tiers []TierConfig, row int) string {
+	n := len(tiers)
+	if n == 0 {
+		return `"1个月以内"`
+	}
+	if n == 1 {
+		return fmt.Sprintf(`"%s"`, tiers[0].Name)
+	}
+	var b strings.Builder
+	for i := 0; i < n-1; i++ {
+		b.WriteString(fmt.Sprintf(`IF(O%d<=%d, "%s", `, row, tiers[i].MaxDays, tiers[i].Name))
+	}
+	b.WriteString(fmt.Sprintf(`"%s"`, tiers[n-1].Name))
+	for i := 0; i < n-1; i++ {
+		b.WriteString(")")
+	}
+	return b.String()
+}
+
+// buildTierRateFormula generates a nested IF formula for bad debt provision rate based on custom tiers.
+func buildTierRateFormula(tiers []TierConfig, row int) string {
+	n := len(tiers)
+	if n == 0 {
+		return "0.01"
+	}
+	if n == 1 {
+		return fmt.Sprintf("%g", tiers[0].Rate)
+	}
+	var b strings.Builder
+	for i := 0; i < n-1; i++ {
+		b.WriteString(fmt.Sprintf(`IF(O%d<=%d, %g, `, row, tiers[i].MaxDays, tiers[i].Rate))
+	}
+	b.WriteString(fmt.Sprintf(`%g`, tiers[n-1].Rate))
+	for i := 0; i < n-1; i++ {
+		b.WriteString(")")
+	}
+	return b.String()
+}
+
+// buildTierLevelFormula generates a nested IF formula for warning level based on custom tiers.
+func buildTierLevelFormula(tiers []TierConfig, row int, themeMode string) string {
+	n := len(tiers)
+	if n == 0 {
+		return `"无"`
+	}
+	getLevel := func(tc TierConfig) string {
+		if themeMode == "soft" || themeMode == "mygo" {
+			return tc.MyGoLevel
+		}
+		return tc.ClassicLevel
+	}
+	if n == 1 {
+		return fmt.Sprintf(`"%s"`, getLevel(tiers[0]))
+	}
+	var b strings.Builder
+	for i := 0; i < n-1; i++ {
+		b.WriteString(fmt.Sprintf(`IF(O%d<=%d, "%s", `, row, tiers[i].MaxDays, getLevel(tiers[i])))
+	}
+	b.WriteString(fmt.Sprintf(`"%s"`, getLevel(tiers[n-1])))
+	for i := 0; i < n-1; i++ {
+		b.WriteString(")")
+	}
+	return b.String()
+}
 
 // ExportWorkbook generates the 5-sheet Excel workbook with 100% native Excel formulas and MyGO/Classic styling.
 func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, error) {
@@ -31,7 +98,7 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		}
 	}
 
-	useMyGoTheme := opts.ThemeMode != "classic"
+	useMyGoTheme := opts.ThemeMode == "soft" || opts.ThemeMode == "mygo"
 
 	f := excelize.NewFile()
 	defer f.Close()
@@ -159,11 +226,16 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 	if useMyGoTheme {
 		// Soft Excel cell fills & fonts
 		softExcelPalette := map[string]struct{ fill, font string }{
-			"无":  {"E2F0D9", "385723"}, // 正常 (淡绿 / 深绿加粗)
-			"蓝色": {"DDEBF7", "1F4E79"}, // 关注 (浅冰蓝 / 深蓝加粗)
-			"黄色": {"FFF2CC", "833C0C"}, // 审慎 (柔和鹅黄 / 褐黄加粗)
-			"橙色": {"E4DFEC", "3B3838"}, // 严控 (冷紫灰 / 冷灰紫加粗)
-			"红色": {"FCE4D6", "C00000"}, // 高危 (警示浅粉 / 警示深红加粗)
+			"正常": {"E2F0D9", "385723"},
+			"关注": {"DDEBF7", "1F4E79"},
+			"审慎": {"FFF2CC", "833C0C"},
+			"严控": {"E4DFEC", "3B3838"},
+			"高危": {"FCE4D6", "C00000"},
+			"无":  {"E2F0D9", "385723"},
+			"蓝色": {"DDEBF7", "1F4E79"},
+			"黄色": {"FFF2CC", "833C0C"},
+			"橙色": {"E4DFEC", "3B3838"},
+			"红色": {"FCE4D6", "C00000"},
 		}
 		for lvl, c := range softExcelPalette {
 			st, _ := f.NewStyle(&excelize.Style{
@@ -184,6 +256,11 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 			"黄色": {"FFF9E6", "B28900", true},
 			"橙色": {"FFF2CC", "ED7D31", true},
 			"红色": {"FCE4D6", "C00000", true},
+			"正常": {"F2F2F2", "595959", false},
+			"关注": {"DDEBF7", "2E75B6", true},
+			"审慎": {"FFF9E6", "B28900", true},
+			"严控": {"FFF2CC", "ED7D31", true},
+			"高危": {"FCE4D6", "C00000", true},
 		}
 		for lvl, c := range classicPalette {
 			st, _ := f.NewStyle(&excelize.Style{
@@ -278,8 +355,16 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellStyle(sheetSummary, cell, cell, stHeaderSum)
 	}
 
-	for idx, tc := range DefaultTierConfigs {
-		r := idx + 3 // Rows 3..7
+	tiers := res.TierConfigs
+	if len(tiers) == 0 {
+		tiers = DefaultTierConfigs
+	}
+	nTiers := len(tiers)
+	totalRow := 3 + nTiers
+	lastDataRow := 2 + nTiers
+
+	for idx, tc := range tiers {
+		r := idx + 3 // Rows 3..2+nTiers
 		f.SetRowHeight(sheetSummary, r, 22)
 
 		cA := fmt.Sprintf("A%d", r)
@@ -299,30 +384,34 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellValue(sheetSummary, cB, tc.RangeText)
 		f.SetCellStyle(sheetSummary, cB, cB, stCenter)
 
-		f.SetCellValue(sheetSummary, cC, tc.ClassicLevel)
-		if st, ok := levelStyles[tc.ClassicLevel]; ok {
+		lvl := tc.ClassicLevel
+		if useMyGoTheme {
+			lvl = tc.MyGoLevel
+		}
+		f.SetCellValue(sheetSummary, cC, lvl)
+		if st, ok := levelStyles[lvl]; ok {
 			f.SetCellStyle(sheetSummary, cC, cC, st)
 		} else {
 			f.SetCellStyle(sheetSummary, cC, cC, stCenter)
 		}
 
-		// PRD 5.2: 单据笔数 (D列) =COUNTIF('应收账款明细(清洗后)'!$S:$S, A3)
+		// PRD 5.2: 单据笔数 (D列) =COUNTIF('应收账款明细(清洗后)'!$S:$S, A{r})
 		f.SetCellFormula(sheetSummary, cD, fmt.Sprintf("COUNTIF('%s'!$S:$S, A%d)", sheetMain, r))
 		f.SetCellStyle(sheetSummary, cD, cD, stIntRight)
 		formulaCount++
 
-		// PRD 5.2: 笔数占比 (E列) =D3/$D$8
-		f.SetCellFormula(sheetSummary, cE, fmt.Sprintf("D%d/$D$8", r))
+		// PRD 5.2: 笔数占比 (E列) =D{r}/$D${totalRow}
+		f.SetCellFormula(sheetSummary, cE, fmt.Sprintf("D%d/$D$%d", r, totalRow))
 		f.SetCellStyle(sheetSummary, cE, cE, stPctRight)
 		formulaCount++
 
-		// PRD 5.2: 未收余额合计 (F列) =SUMIF('应收账款明细(清洗后)'!$S:$S, A3, '应收账款明细(清洗后)'!$L:$L)
+		// PRD 5.2: 未收余额合计 (F列) =SUMIF('应收账款明细(清洗后)'!$S:$S, A{r}, '应收账款明细(清洗后)'!$L:$L)
 		f.SetCellFormula(sheetSummary, cF, fmt.Sprintf("SUMIF('%s'!$S:$S, A%d, '%s'!$L:$L)", sheetMain, r, sheetMain))
 		f.SetCellStyle(sheetSummary, cF, cF, stMoney)
 		formulaCount++
 
-		// PRD 5.2: 金额占比 (G列) =F3/$F$8
-		f.SetCellFormula(sheetSummary, cG, fmt.Sprintf("F%d/$F$8", r))
+		// PRD 5.2: 金额占比 (G列) =F{r}/$F${totalRow}
+		f.SetCellFormula(sheetSummary, cG, fmt.Sprintf("F%d/$F$%d", r, totalRow))
 		f.SetCellStyle(sheetSummary, cG, cG, stPctRight)
 		formulaCount++
 
@@ -330,7 +419,7 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellValue(sheetSummary, cH, tc.Rate)
 		f.SetCellStyle(sheetSummary, cH, cH, stPctRight)
 
-		// PRD 5.2: 计提坏账准备 (I列) =ROUND(F3*H3, 2)
+		// PRD 5.2: 计提坏账准备 (I列) =ROUND(F{r}*H{r}, 2)
 		f.SetCellFormula(sheetSummary, cI, fmt.Sprintf("ROUND(F%d*H%d, 2)", r, r))
 		f.SetCellStyle(sheetSummary, cI, cI, stMoney)
 		formulaCount++
@@ -340,29 +429,40 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellStyle(sheetSummary, cJ, cJ, stLeft)
 	}
 
-	// Row 8: 合计行 (PRD 5.2)
-	f.SetRowHeight(sheetSummary, 8, 25)
-	f.SetCellValue(sheetSummary, "A8", "合计")
-	f.SetCellStyle(sheetSummary, "A8", "A8", stTotalCenter)
-	f.SetCellValue(sheetSummary, "B8", "-")
-	f.SetCellStyle(sheetSummary, "B8", "B8", stTotalCenter)
-	f.SetCellValue(sheetSummary, "C8", "-")
-	f.SetCellStyle(sheetSummary, "C8", "C8", stTotalCenter)
+	// 合计行 (Row totalRow)
+	f.SetRowHeight(sheetSummary, totalRow, 25)
+	cTotA := fmt.Sprintf("A%d", totalRow)
+	cTotB := fmt.Sprintf("B%d", totalRow)
+	cTotC := fmt.Sprintf("C%d", totalRow)
+	cTotD := fmt.Sprintf("D%d", totalRow)
+	cTotE := fmt.Sprintf("E%d", totalRow)
+	cTotF := fmt.Sprintf("F%d", totalRow)
+	cTotG := fmt.Sprintf("G%d", totalRow)
+	cTotH := fmt.Sprintf("H%d", totalRow)
+	cTotI := fmt.Sprintf("I%d", totalRow)
+	cTotJ := fmt.Sprintf("J%d", totalRow)
 
-	f.SetCellFormula(sheetSummary, "D8", "SUM(D3:D7)")
-	f.SetCellStyle(sheetSummary, "D8", "D8", stTotalInt)
-	f.SetCellFormula(sheetSummary, "E8", "SUM(E3:E7)")
-	f.SetCellStyle(sheetSummary, "E8", "E8", stTotalPct)
-	f.SetCellFormula(sheetSummary, "F8", "SUM(F3:F7)")
-	f.SetCellStyle(sheetSummary, "F8", "F8", stTotalMoney)
-	f.SetCellFormula(sheetSummary, "G8", "SUM(G3:G7)")
-	f.SetCellStyle(sheetSummary, "G8", "G8", stTotalPct)
-	f.SetCellFormula(sheetSummary, "H8", "I8/F8")
-	f.SetCellStyle(sheetSummary, "H8", "H8", stTotalPct)
-	f.SetCellFormula(sheetSummary, "I8", "SUM(I3:I7)")
-	f.SetCellStyle(sheetSummary, "I8", "I8", stTotalMoney)
-	f.SetCellValue(sheetSummary, "J8", "全表综合管控")
-	f.SetCellStyle(sheetSummary, "J8", "J8", stTotalLeft)
+	f.SetCellValue(sheetSummary, cTotA, "合计")
+	f.SetCellStyle(sheetSummary, cTotA, cTotA, stTotalCenter)
+	f.SetCellValue(sheetSummary, cTotB, "-")
+	f.SetCellStyle(sheetSummary, cTotB, cTotB, stTotalCenter)
+	f.SetCellValue(sheetSummary, cTotC, "-")
+	f.SetCellStyle(sheetSummary, cTotC, cTotC, stTotalCenter)
+
+	f.SetCellFormula(sheetSummary, cTotD, fmt.Sprintf("SUM(D3:D%d)", lastDataRow))
+	f.SetCellStyle(sheetSummary, cTotD, cTotD, stTotalInt)
+	f.SetCellFormula(sheetSummary, cTotE, fmt.Sprintf("SUM(E3:E%d)", lastDataRow))
+	f.SetCellStyle(sheetSummary, cTotE, cTotE, stTotalPct)
+	f.SetCellFormula(sheetSummary, cTotF, fmt.Sprintf("SUM(F3:F%d)", lastDataRow))
+	f.SetCellStyle(sheetSummary, cTotF, cTotF, stTotalMoney)
+	f.SetCellFormula(sheetSummary, cTotG, fmt.Sprintf("SUM(G3:G%d)", lastDataRow))
+	f.SetCellStyle(sheetSummary, cTotG, cTotG, stTotalPct)
+	f.SetCellFormula(sheetSummary, cTotH, fmt.Sprintf("I%d/F%d", totalRow, totalRow))
+	f.SetCellStyle(sheetSummary, cTotH, cTotH, stTotalPct)
+	f.SetCellFormula(sheetSummary, cTotI, fmt.Sprintf("SUM(I3:I%d)", lastDataRow))
+	f.SetCellStyle(sheetSummary, cTotI, cTotI, stTotalMoney)
+	f.SetCellValue(sheetSummary, cTotJ, "全表综合管控")
+	f.SetCellStyle(sheetSummary, cTotJ, cTotJ, stTotalLeft)
 	formulaCount += 6
 
 	sumWidths := map[string]float64{
@@ -467,13 +567,13 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		cLvl := fmt.Sprintf("%s%d", colLvl, r)
 		cAct := fmt.Sprintf("%s%d", colAct, r)
 
-		// PRD 5.1: 账龄区间 =IF(O{i}<=30, "1个月以内", IF(O{i}<=90, "1-3个月", IF(O{i}<=180, "3-6个月", IF(O{i}<=365, "6-12个月", "1年以上"))))
-		f.SetCellFormula(sheet, cTier, fmt.Sprintf(`IF(O%d<=30, "1个月以内", IF(O%d<=90, "1-3个月", IF(O%d<=180, "3-6个月", IF(O%d<=365, "6-12个月", "1年以上"))))`, r, r, r, r))
+		// PRD 5.1: 账龄区间
+		f.SetCellFormula(sheet, cTier, buildTierNameFormula(tiers, r))
 		f.SetCellStyle(sheet, cTier, cTier, stCenter)
 		formulaCount++
 
-		// PRD 5.1: 坏账计提比例 =IF(O{i}<=30, 0.01, IF(O{i}<=90, 0.05, IF(O{i}<=180, 0.20, IF(O{i}<=365, 0.50, 1.00))))
-		f.SetCellFormula(sheet, cRate, fmt.Sprintf(`IF(O%d<=30, 0.01, IF(O%d<=90, 0.05, IF(O%d<=180, 0.20, IF(O%d<=365, 0.50, 1.00))))`, r, r, r, r))
+		// PRD 5.1: 坏账计提比例
+		f.SetCellFormula(sheet, cRate, buildTierRateFormula(tiers, r))
 		f.SetCellStyle(sheet, cRate, cRate, stPctCenter)
 		formulaCount++
 
@@ -486,8 +586,12 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellStyle(sheet, cProv, cProv, stMoney)
 		formulaCount++
 
-		// PRD 5.1: 风险预警等级 =IF(O{i}<=30, "无", IF(O{i}<=90, "蓝色", IF(O{i}<=180, "黄色", IF(O{i}<=365, "橙色", "红色"))))
-		f.SetCellFormula(sheet, cLvl, fmt.Sprintf(`IF(O%d<=30, "无", IF(O%d<=90, "蓝色", IF(O%d<=180, "黄色", IF(O%d<=365, "橙色", "红色"))))`, r, r, r, r))
+		// PRD 5.1: 风险预警等级
+		lvlTheme := "classic"
+		if useMyGoTheme {
+			lvlTheme = "soft"
+		}
+		f.SetCellFormula(sheet, cLvl, buildTierLevelFormula(tiers, r, lvlTheme))
 		if st, ok := levelStyles[rec.RiskLevel]; ok {
 			f.SetCellStyle(sheet, cLvl, cLvl, st)
 		} else {
@@ -495,8 +599,8 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		}
 		formulaCount++
 
-		// PRD 5.1: 建议措施 =VLOOKUP(S{i}, '坏账准备与预警分析表'!$A$3:$J$7, 10, FALSE)
-		f.SetCellFormula(sheet, cAct, fmt.Sprintf("VLOOKUP(%s%d, '%s'!$A$3:$J$7, 10, FALSE)", colTier, r, sheetSummary))
+		// PRD 5.1: 建议措施 =VLOOKUP(S{i}, '坏账准备与预警分析表'!$A$3:$J${lastDataRow}, 10, FALSE)
+		f.SetCellFormula(sheet, cAct, fmt.Sprintf("VLOOKUP(%s%d, '%s'!$A$3:$J$%d, 10, FALSE)", colTier, r, sheetSummary, lastDataRow))
 		f.SetCellStyle(sheet, cAct, cAct, stLeft)
 		formulaCount++
 	}
@@ -597,7 +701,11 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellValue(sheetCust, cell, h)
 		f.SetCellStyle(sheetCust, cell, cell, stHeaderCust)
 	}
-	for idx, std := range DefaultCustomerStandards {
+	custs := res.CustomerStandards
+	if len(custs) == 0 {
+		custs = DefaultCustomerStandards
+	}
+	for idx, std := range custs {
 		r := idx + 2
 		f.SetRowHeight(sheetCust, r, 20)
 		f.SetCellValue(sheetCust, fmt.Sprintf("A%d", r), std.Code)
@@ -609,13 +717,7 @@ func ExportWorkbook(res *PipelineResult, opts ExportOptions) (*ExportResult, err
 		f.SetCellValue(sheetCust, fmt.Sprintf("D%d", r), std.Credit)
 		f.SetCellStyle(sheetCust, fmt.Sprintf("D%d", r), fmt.Sprintf("D%d", r), stCenter)
 
-		aliasStr := ""
-		for i, a := range std.Aliases {
-			if i > 0 {
-				aliasStr += "、"
-			}
-			aliasStr += a
-		}
+		aliasStr := strings.Join(std.Aliases, "、")
 		f.SetCellValue(sheetCust, fmt.Sprintf("E%d", r), aliasStr)
 		f.SetCellStyle(sheetCust, fmt.Sprintf("E%d", r), fmt.Sprintf("E%d", r), stLeft)
 	}

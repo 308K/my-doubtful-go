@@ -19,6 +19,13 @@ html, body {
   -webkit-text-autospace: normal;
 }
 
+/* Ensure default browser black outline is suppressed on focus */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+}
+
 /* Custom sleek scrollbars for financial data tables (Neutral Zinc Theme) */
 ::-webkit-scrollbar {
   width: 6px;
@@ -36,4 +43,17 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(161, 161, 170, 0.45);
+}
+
+/* Ensure clicking anywhere on transparent date overlay inputs triggers the native calendar */
+.date-picker-overlay::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
 }

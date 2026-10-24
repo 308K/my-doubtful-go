@@ -97,6 +97,14 @@ export interface ExportResult {
   formulaCnt: number;
 }
 
+export interface ImputationConfig {
+  termStrategy: string;
+  termFallbackDays: number;
+  defaultCreditLevel: string;
+  overdueGraceDays: number;
+  lowAmountOutlierThreshold: number;
+}
+
 export interface MissingLogEntry {
   field: string;
   seq: number;
@@ -112,6 +120,13 @@ export interface MissingSummary {
   expectedCount: number;
   actualCount: number;
   items: MissingLogEntry[];
+}
+
+export interface PipelineOptions {
+  asOfDate: string;
+  imputationRules?: ImputationConfig;
+  customerStandards?: CustomerStandard[];
+  tierConfigs?: TierConfig[];
 }
 
 export interface PipelineResult {
@@ -145,6 +160,7 @@ export interface PipelineResult {
   allRecords: ARRecord[];
   customerStandards: CustomerStandard[];
   tierConfigs: TierConfig[];
+  imputationRules: ImputationConfig;
 }
 
 export interface RegionSummary {
@@ -157,6 +173,12 @@ export interface RegionSummary {
   overdueCount: number;
   overdueBalance: number;
   collectionRate: number;
+}
+
+export interface RuleConfigPackage {
+  imputationRules: ImputationConfig;
+  customerStandards: CustomerStandard[];
+  tierConfigs: TierConfig[];
 }
 
 export interface StructureCleanReport {
@@ -222,6 +244,10 @@ export const SmartARService = {
   exportExcelReport(themeMode: string, asOfDate: string): Promise<ExportResult | null> {
     return call("SmartARService.ExportExcelReport", themeMode, asOfDate);
   },
+  /** GetDefaultRulePackage returns the default imputation, master data standards, and tier configs. */
+  getDefaultRulePackage(): Promise<RuleConfigPackage> {
+    return call("SmartARService.GetDefaultRulePackage");
+  },
   /** GetSystemInfo returns host platform and Go kernel metadata. */
   getSystemInfo(): Promise<SystemInfo> {
     return call("SmartARService.GetSystemInfo");
@@ -249,6 +275,14 @@ export const SmartARService = {
   /** RecalculateWithDate re-runs the 5-step pipeline with a new Report Base Date (报表基准日). */
   recalculateWithDate(asOfDate: string): Promise<PipelineResult | null> {
     return call("SmartARService.RecalculateWithDate", asOfDate);
+  },
+  /** RecomputeWithCustomRules re-runs the 5-step pipeline with user-customized imputation, customer master dictionary, and tier standards. */
+  recomputeWithCustomRules(opts: PipelineOptions): Promise<PipelineResult | null> {
+    return call("SmartARService.RecomputeWithCustomRules", opts);
+  },
+  /** ResetToDefaultRules resets all imputation rules, customer standards, and tier configs back to the training baseline. */
+  resetToDefaultRules(asOfDate: string): Promise<PipelineResult | null> {
+    return call("SmartARService.ResetToDefaultRules", asOfDate);
   },
   /** RevealFileInFolder highlights the exported Excel file in Windows Explorer / macOS Finder / Linux File Manager. */
   revealFileInFolder(filePath: string): Promise<void> {

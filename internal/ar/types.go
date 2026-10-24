@@ -206,6 +206,31 @@ type PipelineResult struct {
 	AllRecords         []ARRecord            `json:"allRecords"`
 	CustomerStandards  []CustomerStandard    `json:"customerStandards"`
 	TierConfigs        []TierConfig          `json:"tierConfigs"`
+	ImputationRules    ImputationConfig      `json:"imputationRules"`
+}
+
+// ImputationConfig defines custom missing value imputation rules and anomaly thresholds.
+type ImputationConfig struct {
+	TermStrategy              string  `json:"termStrategy"`              // "mode" (众数优先) or "fixed" (固定账期)
+	TermFallbackDays          int     `json:"termFallbackDays"`          // 默认缺省账期 (默认 60 天)
+	DefaultCreditLevel        string  `json:"defaultCreditLevel"`        // 默认信用等级 (默认 "B")
+	OverdueGraceDays          int     `json:"overdueGraceDays"`          // 逾期宽限天数 (默认 0 天)
+	LowAmountOutlierThreshold float64 `json:"lowAmountOutlierThreshold"` // 离群小额异常阈值 (默认 20000.0 元)
+}
+
+// PipelineOptions allows users to customize the 5-step analysis rules.
+type PipelineOptions struct {
+	AsOfDate          string             `json:"asOfDate"`
+	ImputationRules   *ImputationConfig  `json:"imputationRules,omitempty"`
+	CustomerStandards []CustomerStandard `json:"customerStandards,omitempty"`
+	TierConfigs       []TierConfig       `json:"tierConfigs,omitempty"`
+}
+
+// RuleConfigPackage bundles all configurable rule sets for frontend management.
+type RuleConfigPackage struct {
+	ImputationRules   ImputationConfig   `json:"imputationRules"`
+	CustomerStandards []CustomerStandard `json:"customerStandards"`
+	TierConfigs       []TierConfig       `json:"tierConfigs"`
 }
 
 // ExportOptions configures the Excel report generation.

@@ -21,6 +21,7 @@ import {
   Step3AnomalyTriageView,
   Step5FormulaExportView,
 } from "./components/PipelineStepsView";
+import { RuleSettingsModal } from "./components/RuleSettingsModal";
 import {
   FolderOpen,
   Download,
@@ -37,6 +38,7 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   Cpu,
+  SlidersHorizontal,
 } from "lucide-react";
 
 const PIPELINE_STEPS: {
@@ -98,6 +100,7 @@ export const App: React.FC = () => {
     setPaletteMode,
     togglePaletteMode,
     toggleDarkMode,
+    openRuleModal,
     setSearchQuery,
     setTierFilter,
     setRegionFilter,
@@ -112,6 +115,23 @@ export const App: React.FC = () => {
     exportWorkbook,
     revealExportedFile,
   } = useSmartARStore();
+
+  const dateInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleOpenDatePicker = () => {
+    if (dateInputRef.current) {
+      try {
+        if (typeof dateInputRef.current.showPicker === "function") {
+          dateInputRef.current.showPicker();
+          return;
+        }
+      } catch {
+        // Fallback for environments where showPicker may throw or not exist
+      }
+      dateInputRef.current.focus();
+      dateInputRef.current.click();
+    }
+  };
 
   useEffect(() => {
     void initApp();
@@ -165,7 +185,7 @@ export const App: React.FC = () => {
                 SmartAR智能应收账款账龄分析与坏账预警系统
               </h1>
               <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                V1.1.0
+                V1.2.0
               </span>
             </div>
             {systemInfo && (
@@ -178,15 +198,20 @@ export const App: React.FC = () => {
           {/* Global Controls: Base Date + Palette Switch + Import/Export */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Report As-Of Date Selector (Formatted per system locale) */}
-            <div className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-850 transition-colors cursor-pointer" title="点击调整报表基准日">
-              <Calendar className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-zinc-500 dark:text-zinc-400">
+            <div
+              onClick={handleOpenDatePicker}
+              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer select-none"
+              title="点击弹出日历调整报表基准日"
+            >
+              <Calendar className="w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+              <span className="text-zinc-500 dark:text-zinc-400 pointer-events-none">
                 基准日:
               </span>
-              <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100">
+              <span className="font-mono font-medium text-zinc-900 dark:text-zinc-100 pointer-events-none">
                 {formatSystemDate(asOfDate)}
               </span>
               <input
+                ref={dateInputRef}
                 type="date"
                 value={asOfDate}
                 onChange={(e) => {
@@ -194,7 +219,16 @@ export const App: React.FC = () => {
                     void changeAsOfDate(e.target.value);
                   }
                 }}
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                onClick={(e) => {
+                  try {
+                    if (typeof e.currentTarget.showPicker === "function") {
+                      e.currentTarget.showPicker();
+                    }
+                  } catch {
+                    // Fallback
+                  }
+                }}
+                className="date-picker-overlay absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                 aria-label="选择基准日"
               />
             </div>
@@ -202,7 +236,7 @@ export const App: React.FC = () => {
             {/* Warning Palette Toggle */}
             <button
               onClick={togglePaletteMode}
-              className="px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-850 text-xs font-medium text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
               title="切换五级预警阶梯色彩样式"
             >
               <Palette className="w-3.5 h-3.5 text-zinc-400" />
@@ -219,6 +253,16 @@ export const App: React.FC = () => {
                   />
                 ))}
               </span>
+            </button>
+
+            {/* Rules and Master Data Configuration */}
+            <button
+              onClick={openRuleModal}
+              className="px-2.5 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="自定义缺失值填充规则、客户主数据字典与坏账预警标准"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
+              <span>规则配置</span>
             </button>
 
             {/* Dark / Light Mode Toggle */}
@@ -267,7 +311,7 @@ export const App: React.FC = () => {
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-left transition-colors cursor-pointer ${
                   isActive
                     ? "border-zinc-900 dark:border-zinc-100 bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50"
-                    : "border-transparent bg-zinc-50/70 dark:bg-zinc-900/40 text-zinc-500 hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60"
+                    : "border-transparent bg-zinc-50/70 dark:bg-zinc-900/40 text-zinc-500 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60"
                 }`}
               >
                 <div
@@ -554,6 +598,9 @@ export const App: React.FC = () => {
           </span>
         </div>
       </footer>
+
+      {/* Business Rules & Master Data Configuration Modal */}
+      <RuleSettingsModal />
     </div>
   );
 };
