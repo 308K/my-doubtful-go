@@ -72,7 +72,7 @@ export const AuditReportModal: React.FC = () => {
                   应收账款资产质量治理与信用风险审计管理报告
                 </h2>
                 <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                  Eino Graph智能综合管报
+                  AI智能综合管报
                 </span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">

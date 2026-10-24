@@ -413,7 +413,7 @@ func (s *SmartARService) OpenStandaloneAIWindow(darkMode bool) error {
 	return nil
 }
 
-// StreamAIChat executes Eino ReAct agent with financial tools and streams tokens to channel.
+// StreamAIChat executes AI chat with financial tools and streams tokens to channel.
 func (s *SmartARService) StreamAIChat(ctx context.Context, history []ai.ChatMessage, stream *mygo.Channel[ai.StreamChunk]) error {
 	s.mu.Lock()
 	res := s.lastResult
@@ -426,7 +426,7 @@ func (s *SmartARService) StreamAIChat(ctx context.Context, history []ai.ChatMess
 	return s.aiSvc.StreamChat(ctx, history, res, &rules, stream)
 }
 
-// StreamAuditReport synthesizes an executive management report using Eino Graph and streams tokens.
+// StreamAuditReport synthesizes an executive management report and streams tokens.
 func (s *SmartARService) StreamAuditReport(ctx context.Context, req ai.ReportGenRequest, stream *mygo.Channel[ai.StreamChunk]) (*ai.ReportResult, error) {
 	s.mu.Lock()
 	res := s.lastResult

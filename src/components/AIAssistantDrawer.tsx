@@ -342,7 +342,7 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
-              CloudWeGo Eino原生驱动 · 支持多轮工具调用与协同审核
+              OpenAI Go SDK原生驱动 · 支持多轮工具调用与协同审核
             </p>
           </div>
         </div>

@@ -359,11 +359,11 @@ export const SmartARService = {
   saveAIConfig(cfg: AIConfig): Promise<void> {
     return call("SmartARService.SaveAIConfig", cfg);
   },
-  /** StreamAIChat executes Eino ReAct agent with financial tools and streams tokens to channel. */
+  /** StreamAIChat executes AI chat with financial tools and streams tokens to channel. */
   streamAIChat(history: ChatMessage[], stream: Channel<StreamChunk>): Promise<void> {
     return call("SmartARService.StreamAIChat", history, stream);
   },
-  /** StreamAuditReport synthesizes an executive management report using Eino Graph and streams tokens. */
+  /** StreamAuditReport synthesizes an executive management report and streams tokens. */
   streamAuditReport(req: ReportGenRequest, stream: Channel<StreamChunk>): Promise<ReportResult | null> {
     return call("SmartARService.StreamAuditReport", req, stream);
   },

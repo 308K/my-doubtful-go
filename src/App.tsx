@@ -309,7 +309,7 @@ export const App: React.FC = () => {
                   ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-white"
                   : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
               )}
-              title="打开AI财务治理助手 (CloudWeGo Eino驱动)"
+              title="打开AI财务治理助手"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>AI助手</span>
@@ -668,13 +668,13 @@ export const App: React.FC = () => {
       {/* Business Rules & Master Data Configuration Modal */}
       <RuleSettingsModal />
 
-      {/* AI Financial Copilot Drawer (Eino ReAct Agent) */}
+      {/* AI Financial Copilot Drawer (OpenAI Tool Calling Agent) */}
       <AIAssistantDrawer />
 
       {/* AI Model & Endpoint Settings Modal */}
       <AISettingsModal />
 
-      {/* Full Audit Management Report Viewer Modal (Eino Graph) */}
+      {/* Full Audit Management Report Viewer Modal (Executive ECL Report) */}
       <AuditReportModal />
 
       {/* Open Source Licenses & Third-Party Notices Modal */}
