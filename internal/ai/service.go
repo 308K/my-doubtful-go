@@ -442,7 +442,7 @@ func (s *Service) StreamChat(
 						},
 						"customer_code": map[string]any{
 							"type":        "string",
-							"description": "客户代码，如KH001",
+							"description": "客户代码，如CUST001或CUST006",
 						},
 						"customer_name": map[string]any{
 							"type":        "string",
@@ -450,7 +450,7 @@ func (s *Service) StreamChat(
 						},
 						"customer_credit": map[string]any{
 							"type":        "string",
-							"description": "客户信用等级，如AAA, AA, A, BBB, BB, B, C",
+							"description": "客户信用等级，如A、B、C、D",
 						},
 						"customer_region": map[string]any{
 							"type":        "string",

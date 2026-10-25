@@ -89,7 +89,7 @@ export const RuleSettingsModal: React.FC = () => {
 
   // Customer handlers
   const handleAddCustomer = () => {
-    const newCode = `KH-${String(customers.length + 1).padStart(3, "0")}`;
+    const newCode = `CUST${String(customers.length + 1).padStart(3, "0")}`;
     setCustomers([
       ...customers,
       {

@@ -102,6 +102,7 @@ interface SmartARState {
   setActiveModel: (model: string) => Promise<void>;
   setReasoningEffort: (effort: string) => Promise<void>;
   openStandaloneWindow: () => Promise<void>;
+  syncChatHistory: () => Promise<void>;
   sendChatMessage: (content: string) => Promise<void>;
   withdrawChatMessage: (index: number) => Promise<void>;
   clearChat: () => void;
@@ -134,8 +135,45 @@ export const applyDarkModeDOM = (isDark: boolean) => {
   }
 };
 
+export const DEFAULT_WELCOME_MESSAGE: ChatMessage = {
+  role: "assistant",
+  content:
+    "您好！我是SmartAR智能财务与信用审计专家助手。\n\n我可以协助您进行**应收账款全局资产指标问答**、**5级账龄区间与坏账准备测算穿透**、**大客户集中度与逾期风险审计**，以及**自然语言规则配置（人机协同审核）**。\n\n您可以点击下方快捷提示词或直接输入问题，也可以点击右上角生成《管理层审计分析管报》。",
+  createdAt: new Date().toLocaleTimeString(),
+};
+
+export const getInitialChatMessages = (): ChatMessage[] => {
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("smartar_chat_history");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return [DEFAULT_WELCOME_MESSAGE];
+};
+
+const persistChatHistory = (messages: ChatMessage[]) => {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("smartar_chat_history", JSON.stringify(messages));
+    } catch {
+      // ignore
+    }
+  }
+  if (isMyGo()) {
+    SmartARService.saveChatHistory(messages).catch(() => {});
+  }
+};
+
 export const useSmartARStore = create<SmartARState>((set, get) => ({
-  activeStep: 4,
+  activeStep: 1,
   pipelineData: null,
   systemInfo: null,
   isLoading: false,
@@ -152,14 +190,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   isAISettingsOpen: false,
   isReportModalOpen: false,
   aiConfig: null,
-  chatMessages: [
-    {
-      role: "assistant",
-      content:
-        "您好！我是SmartAR智能财务与信用审计专家助手。\n\n我可以协助您进行**应收账款全局资产指标问答**、**5级账龄区间与坏账准备测算穿透**、**大客户集中度与逾期风险审计**，以及**自然语言规则配置（人机协同审核）**。\n\n您可以点击下方快捷提示词或直接输入问题，也可以点击右上角生成《管理层审计分析管报》。",
-      createdAt: new Date().toLocaleTimeString(),
-    },
-  ],
+  chatMessages: getInitialChatMessages(),
   isAIGenerating: false,
   aiCurrentTool: null,
   auditReport: null,
@@ -190,9 +221,18 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
     }),
   openRuleModal: () => set({ isRuleModalOpen: true }),
   closeRuleModal: () => set({ isRuleModalOpen: false }),
-  openAIPanel: () => set({ isAIPanelOpen: true }),
+  openAIPanel: () => {
+    void get().syncChatHistory();
+    set({ isAIPanelOpen: true });
+  },
   closeAIPanel: () => set({ isAIPanelOpen: false }),
-  toggleAIPanel: () => set((s) => ({ isAIPanelOpen: !s.isAIPanelOpen })),
+  toggleAIPanel: () => {
+    const next = !get().isAIPanelOpen;
+    if (next) {
+      void get().syncChatHistory();
+    }
+    set({ isAIPanelOpen: next });
+  },
   openAISettings: () => set({ isAISettingsOpen: true }),
   closeAISettings: () => set({ isAISettingsOpen: false }),
   openReportModal: () => set({ isReportModalOpen: true }),
@@ -216,16 +256,18 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
     }
     set({ isLoading: true, error: null });
     try {
-      const [sys, data] = await Promise.all([
-        SmartARService.getSystemInfo(),
-        SmartARService.loadBuiltInSample(get().asOfDate),
-      ]);
+      let data = await SmartARService.getCurrentPipelineResult();
+      if (!data) {
+        data = await SmartARService.loadBuiltInSample(get().asOfDate);
+      }
+      const sys = await SmartARService.getSystemInfo();
       set({
         systemInfo: sys,
         pipelineData: data,
         isLoading: false,
       });
       void get().fetchAIConfig();
+      void get().syncChatHistory();
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : String(err),
@@ -500,9 +542,51 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
 
   openStandaloneWindow: async () => {
     try {
-      await SmartARService.openStandaloneAIWindow(get().darkMode);
+      const msgs = get().chatMessages;
+      persistChatHistory(msgs);
+      if (isMyGo()) {
+        await SmartARService.saveChatHistory(msgs);
+        await SmartARService.openStandaloneAIWindow(get().darkMode);
+      }
     } catch (err) {
       set({ error: err instanceof Error ? err.message : String(err) });
+    }
+  },
+
+  syncChatHistory: async () => {
+    if (isMyGo()) {
+      try {
+        const backendHistory = await SmartARService.getChatHistory();
+        if (backendHistory && backendHistory.length > 0) {
+          set({ chatMessages: backendHistory });
+          if (typeof window !== "undefined") {
+            try {
+              localStorage.setItem("smartar_chat_history", JSON.stringify(backendHistory));
+            } catch {
+              // ignore
+            }
+          }
+          return;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const local = localStorage.getItem("smartar_chat_history");
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            set({ chatMessages: parsed });
+            if (isMyGo()) {
+              SmartARService.saveChatHistory(parsed).catch(() => {});
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
   },
 
@@ -510,11 +594,21 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
     const trimmed = content.trim();
     if (!trimmed || get().isAIGenerating) return;
 
+    const currentData = get().pipelineData;
+    const slimSnapshot = currentData
+      ? ({
+          asOfDate: currentData.asOfDate,
+          imputationRules: currentData.imputationRules,
+          customerStandards: currentData.customerStandards,
+          tierConfigs: currentData.tierConfigs,
+        } as PipelineResult)
+      : undefined;
+
     const userMsg: ChatMessage = {
       role: "user",
       content: trimmed,
       createdAt: new Date().toLocaleTimeString(),
-      pipelineSnapshot: get().pipelineData || undefined,
+      pipelineSnapshot: slimSnapshot,
     };
 
     const assistantMsgPlaceholder: ChatMessage = {
@@ -524,11 +618,13 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       createdAt: new Date().toLocaleTimeString(),
     };
 
-    set((s) => ({
-      chatMessages: [...s.chatMessages, userMsg, assistantMsgPlaceholder],
+    const newMsgs = [...get().chatMessages, userMsg, assistantMsgPlaceholder];
+    set({
+      chatMessages: newMsgs,
       isAIGenerating: true,
       aiCurrentTool: null,
-    }));
+    });
+    persistChatHistory(newMsgs);
 
     try {
       const historyToSend = get().chatMessages.slice(0, -1).map((m) => ({
@@ -572,19 +668,17 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       });
     } finally {
       set({ isAIGenerating: false, aiCurrentTool: null });
+      persistChatHistory(get().chatMessages);
     }
   },
 
   clearChat: () => {
-    set({
-      chatMessages: [
-        {
-          role: "assistant",
-          content: "已清空当前会话历史。您可以随时提出新的问题，或点击快捷指令开始分析。",
-          createdAt: new Date().toLocaleTimeString(),
-        },
-      ],
-    });
+    const defaultMsg: ChatMessage[] = [DEFAULT_WELCOME_MESSAGE];
+    set({ chatMessages: defaultMsg });
+    persistChatHistory(defaultMsg);
+    if (isMyGo()) {
+      SmartARService.clearChatHistory().catch(() => {});
+    }
   },
 
   withdrawChatMessage: async (index: number) => {
@@ -594,11 +688,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
     if (!targetMsg) return;
     const newMsgs = msgs.slice(0, index);
     if (newMsgs.length === 0) {
-      newMsgs.push({
-        role: "assistant",
-        content: "已清空当前会话历史。您可以随时提出新的问题，或点击快捷指令开始分析。",
-        createdAt: new Date().toLocaleTimeString(),
-      });
+      newMsgs.push(DEFAULT_WELCOME_MESSAGE);
     }
 
     if (targetMsg.pipelineSnapshot) {
@@ -626,6 +716,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
             isLoading: false,
             toastMessage: "已撤回至该指令前，并已恢复财务治理规则与测算结果",
           });
+          persistChatHistory(newMsgs);
           return;
         } catch (err) {
           console.error("Failed to rollback rules:", err);
@@ -637,6 +728,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       chatMessages: newMsgs,
       toastMessage: "已撤回至该指令发送前状态",
     });
+    persistChatHistory(newMsgs);
   },
 
   generateAuditReport: async (focus = "comprehensive") => {
@@ -690,6 +782,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
             }
             return m;
           });
+          persistChatHistory(updatedMessages);
           return {
             pipelineData: res,
             chatMessages: updatedMessages,
@@ -719,6 +812,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
           }
           return m;
         });
+        persistChatHistory(updatedMessages);
         return {
           chatMessages: updatedMessages,
           toastMessage: "已放弃该规则变更提案。",
@@ -736,6 +830,17 @@ if (typeof window !== "undefined") {
       const isDark = e.newValue === "1";
       applyDarkModeDOM(isDark);
       useSmartARStore.setState({ darkMode: isDark });
+    } else if (e.key === "smartar_chat_history" && e.newValue) {
+      try {
+        const msgs = JSON.parse(e.newValue);
+        if (Array.isArray(msgs) && msgs.length > 0) {
+          if (!useSmartARStore.getState().isAIGenerating) {
+            useSmartARStore.setState({ chatMessages: msgs });
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
   });
 }

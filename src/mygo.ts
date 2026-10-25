@@ -291,6 +291,10 @@ export const SmartARService = {
   applyAIProposal(proposalID: string): Promise<PipelineResult | null> {
     return call("SmartARService.ApplyAIProposal", proposalID);
   },
+  /** ClearChatHistory resets the shared chat conversation history. */
+  clearChatHistory(): Promise<void> {
+    return call("SmartARService.ClearChatHistory");
+  },
   /** ExportExcelReport opens a native Save File dialog and exports the 5-sheet dynamic-formula Excel workbook. */
   exportExcelReport(themeMode: string, asOfDate: string): Promise<ExportResult | null> {
     return call("SmartARService.ExportExcelReport", themeMode, asOfDate);
@@ -302,6 +306,14 @@ export const SmartARService = {
   /** GetAIConfig returns user-configured AI model and credentials sanitized for frontend (APIKey is wiped). */
   getAIConfig(): Promise<AIConfig> {
     return call("SmartARService.GetAIConfig");
+  },
+  /** GetChatHistory returns the in-memory chat conversation history. */
+  getChatHistory(): Promise<ChatMessage[]> {
+    return call("SmartARService.GetChatHistory");
+  },
+  /** GetCurrentPipelineResult returns the active in-memory pipeline result, or nil if none. */
+  getCurrentPipelineResult(): Promise<PipelineResult | null> {
+    return call("SmartARService.GetCurrentPipelineResult");
   },
   /** GetDefaultRulePackage returns the default imputation, master data standards, and tier configs. */
   getDefaultRulePackage(): Promise<RuleConfigPackage> {
@@ -358,6 +370,10 @@ export const SmartARService = {
   /** SaveAIConfig saves user-configured AI settings. */
   saveAIConfig(cfg: AIConfig): Promise<void> {
     return call("SmartARService.SaveAIConfig", cfg);
+  },
+  /** SaveChatHistory updates the shared in-memory chat conversation history. */
+  saveChatHistory(history: ChatMessage[]): Promise<void> {
+    return call("SmartARService.SaveChatHistory", history);
   },
   /** StreamAIChat executes AI chat with financial tools and streams tokens to channel. */
   streamAIChat(history: ChatMessage[], stream: Channel<StreamChunk>): Promise<void> {

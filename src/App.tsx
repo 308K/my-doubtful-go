@@ -220,7 +220,7 @@ export const App: React.FC = () => {
                 SmartAR智能应收账款账龄分析与坏账预警系统
               </h1>
               <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                V2.1.0
+                V2.2.0
               </span>
             </div>
             {systemInfo && (
@@ -652,10 +652,44 @@ export const App: React.FC = () => {
 
       {/* Footer - Clean Monochromatic Centered */}
       <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-2.5 text-[11px] text-zinc-500">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-center text-center gap-1.5">
-          <span>
-            SmartAR Desktop · 基于桌面运行时+React 19+shadcn/ui+Excelize v2构建 ·
-          </span>
+        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center justify-center text-center gap-1.5">
+          <span>SmartAR Desktop · 基于</span>
+          <a
+            href="https://mygo.egoist.dev/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-zinc-800 dark:hover:text-zinc-200 underline transition-colors"
+          >
+            MyGo
+          </a>
+          <span>+</span>
+          <a
+            href="https://react.dev/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-zinc-800 dark:hover:text-zinc-200 underline transition-colors"
+          >
+            React 19
+          </a>
+          <span>+</span>
+          <a
+            href="https://ui.shadcn.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-zinc-800 dark:hover:text-zinc-200 underline transition-colors"
+          >
+            shadcn/ui
+          </a>
+          <span>+</span>
+          <a
+            href="https://xuri.me/excelize/"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-zinc-800 dark:hover:text-zinc-200 underline transition-colors"
+          >
+            Excelize v2
+          </a>
+          <span>构建 ·</span>
           <button
             onClick={() => setIsLicensesOpen(true)}
             className="underline hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-pointer"

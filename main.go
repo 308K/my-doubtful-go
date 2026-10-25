@@ -37,12 +37,13 @@ type SystemInfo struct {
 
 // SmartARService exposes the 5-step AR cleaning, anomaly audit, aging warning, and dynamic formula Excel engine to the frontend.
 type SmartARService struct {
-	mu         sync.Mutex
-	lastBytes  []byte
-	lastSource string
-	lastResult *ar.PipelineResult
-	lastOpts   ar.PipelineOptions
-	aiSvc      *ai.Service
+	mu          sync.Mutex
+	lastBytes   []byte
+	lastSource  string
+	lastResult  *ar.PipelineResult
+	lastOpts    ar.PipelineOptions
+	aiSvc       *ai.Service
+	chatHistory []ai.ChatMessage
 }
 
 // GetSystemInfo returns host platform and Go kernel metadata.
@@ -51,7 +52,7 @@ func (s *SmartARService) GetSystemInfo() SystemInfo {
 		OS:         runtime.GOOS,
 		Arch:       runtime.GOARCH,
 		GoVersion:  runtime.Version(),
-		AppVersion: "2.1.0",
+		AppVersion: "2.2.0",
 		Engine:     "Pure Go + Excelize v2 (No CGo)",
 	}
 }
@@ -411,6 +412,34 @@ func (s *SmartARService) OpenStandaloneAIWindow(darkMode bool) error {
 		},
 	})
 	return nil
+}
+
+// GetCurrentPipelineResult returns the active in-memory pipeline result, or nil if none.
+func (s *SmartARService) GetCurrentPipelineResult() (*ar.PipelineResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lastResult, nil
+}
+
+// GetChatHistory returns the in-memory chat conversation history.
+func (s *SmartARService) GetChatHistory() []ai.ChatMessage {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.chatHistory
+}
+
+// SaveChatHistory updates the shared in-memory chat conversation history.
+func (s *SmartARService) SaveChatHistory(history []ai.ChatMessage) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.chatHistory = history
+}
+
+// ClearChatHistory resets the shared chat conversation history.
+func (s *SmartARService) ClearChatHistory() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.chatHistory = nil
 }
 
 // StreamAIChat executes AI chat with financial tools and streams tokens to channel.

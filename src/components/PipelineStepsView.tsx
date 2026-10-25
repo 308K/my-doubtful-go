@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import React, { useRef, useState } from "react";
+import { isMyGo } from "mygo-runtime";
 import type { ExportResult, PipelineResult } from "../mygo";
 import { useSmartARStore } from "../store";
 import {
@@ -58,6 +59,14 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
     }
   };
 
+  const handleSelectFile = () => {
+    if (isMyGo()) {
+      onOpenDialog();
+    } else {
+      fileInputRef.current?.click();
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Upload & Drag-and-Drop Hero Card */}
@@ -89,24 +98,18 @@ export const Step1UploadCleanView: React.FC<Step1Props> = ({
             <Upload className="w-6 h-6" />
           </div>
           <h3 className="text-base font-bold text-zinc-900 dark:text-white">
-            拖拽ERP应收账款原始Excel到此处，或调用系统原生文件对话框
+            拖拽ERP应收账款原始Excel到此处，或点击浏览选择文件
           </h3>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xl">
             支持用友U8、金蝶云星空、SAP、Oracle等导出的含多级表头、空白行、小计合计行与重复记录的.xlsx原始表，本地内存高速清洗。
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
             <button
-              onClick={onOpenDialog}
+              onClick={handleSelectFile}
               className="px-4 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-zinc-50 dark:hover:bg-zinc-200 dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             >
               <FolderOpen className="w-4 h-4" />
-              浏览本地Excel文件（原生对话框）
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200 text-xs font-medium transition-colors cursor-pointer"
-            >
-              网页文件选择器上传
+              浏览选择本地Excel文件
             </button>
             <button
               onClick={onLoadSample}
