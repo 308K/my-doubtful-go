@@ -92,25 +92,89 @@ jobs:
       - name: Build Cross-Platform Packages via MyGo CLI
         run: bun run build -- -platform "${{ matrix.platform }}"
 
+      - name: Package AppImage for Linux
+        if: matrix.artifact_name == 'SmartAR-Linux'
+        run: |
+          set -e
+          sudo apt-get update && sudo apt-get install -y wget file squashfs-tools
+          VERSION=$(node -p "require('./package.json').version")
+
+          # Download appimagetool and extract to avoid FUSE requirement
+          wget -q -O appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          ./appimagetool --appimage-extract
+
+          # 1. Package Linux amd64 (x86_64) AppImage
+          mkdir -p appdir-amd64/usr/bin
+          mkdir -p appdir-amd64/usr/share/applications
+          mkdir -p appdir-amd64/usr/share/icons/hicolor/256x256/apps
+          tar -zxf build/linux-amd64/smartar-*-linux-amd64.tar.gz -C appdir-amd64/usr/bin/
+          cp appdir-amd64/usr/bin/smartar.desktop appdir-amd64/
+          cp appdir-amd64/usr/bin/smartar.desktop appdir-amd64/usr/share/applications/
+          cp appdir-amd64/usr/bin/smartar.png appdir-amd64/
+          cp appdir-amd64/usr/bin/smartar.png appdir-amd64/usr/share/icons/hicolor/256x256/apps/
+          cp appdir-amd64/usr/bin/smartar.png appdir-amd64/.DirIcon
+          cat << 'EOF' > appdir-amd64/AppRun
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "${HERE}/usr/bin/smartar" "$@"
+          EOF
+          chmod +x appdir-amd64/AppRun
+          ARCH=x86_64 ./squashfs-root/AppRun -n appdir-amd64 "build/linux-amd64/SmartAR_${VERSION}_Linux_x86_64.AppImage"
+
+          # 2. Package Linux arm64 (aarch64) AppImage
+          mkdir -p appdir-arm64/usr/bin
+          mkdir -p appdir-arm64/usr/share/applications
+          mkdir -p appdir-arm64/usr/share/icons/hicolor/256x256/apps
+          tar -zxf build/linux-arm64/smartar-*-linux-arm64.tar.gz -C appdir-arm64/usr/bin/
+          cp appdir-arm64/usr/bin/smartar.desktop appdir-arm64/
+          cp appdir-arm64/usr/bin/smartar.desktop appdir-arm64/usr/share/applications/
+          cp appdir-arm64/usr/bin/smartar.png appdir-arm64/
+          cp appdir-arm64/usr/bin/smartar.png appdir-arm64/usr/share/icons/hicolor/256x256/apps/
+          cp appdir-arm64/usr/bin/smartar.png appdir-arm64/.DirIcon
+          cat << 'EOF' > appdir-arm64/AppRun
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "${HERE}/usr/bin/smartar" "$@"
+          EOF
+          chmod +x appdir-arm64/AppRun
+          wget -q -O runtime-aarch64 https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-aarch64 || true
+          if [ -s runtime-aarch64 ]; then
+            ARCH=aarch64 ./squashfs-root/AppRun -n --runtime-file runtime-aarch64 appdir-arm64 "build/linux-arm64/SmartAR_${VERSION}_Linux_aarch64.AppImage" || true
+          fi
+
+      - name: Normalize Release Asset Names
+        run: |
+          mkdir -p dist_release
+          VERSION=$(node -p "require('./package.json').version")
+
+          if [ "${{ matrix.artifact_name }}" = "SmartAR-Windows" ]; then
+            cp "build/windows-amd64/SmartAR Setup ${VERSION} amd64.exe" "dist_release/SmartAR_${VERSION}_Windows_x64_Setup.exe" 2>/dev/null || cp build/windows-amd64/*Setup*.exe "dist_release/SmartAR_${VERSION}_Windows_x64_Setup.exe"
+            cp "build/windows-amd64/SmartAR.exe" "dist_release/SmartAR_${VERSION}_Windows_x64_Portable.exe"
+            cp "build/windows-arm64/SmartAR Setup ${VERSION} arm64.exe" "dist_release/SmartAR_${VERSION}_Windows_arm64_Setup.exe" 2>/dev/null || cp build/windows-arm64/*Setup*.exe "dist_release/SmartAR_${VERSION}_Windows_arm64_Setup.exe"
+            cp "build/windows-arm64/SmartAR.exe" "dist_release/SmartAR_${VERSION}_Windows_arm64_Portable.exe"
+          elif [ "${{ matrix.artifact_name }}" = "SmartAR-macOS" ]; then
+            cp "build/darwin-arm64/SmartAR ${VERSION} arm64.dmg" "dist_release/SmartAR_${VERSION}_macOS_AppleSilicon.dmg" 2>/dev/null || cp build/darwin-arm64/*.dmg "dist_release/SmartAR_${VERSION}_macOS_AppleSilicon.dmg"
+            cp "build/darwin-amd64/SmartAR ${VERSION} amd64.dmg" "dist_release/SmartAR_${VERSION}_macOS_Intel.dmg" 2>/dev/null || cp build/darwin-amd64/*.dmg "dist_release/SmartAR_${VERSION}_macOS_Intel.dmg"
+          elif [ "${{ matrix.artifact_name }}" = "SmartAR-Linux" ]; then
+            cp build/linux-amd64/*.deb dist_release/
+            cp build/linux-arm64/*.deb dist_release/
+            cp build/linux-amd64/*.tar.gz dist_release/
+            cp build/linux-arm64/*.tar.gz dist_release/
+            cp build/linux-*/*.AppImage dist_release/ 2>/dev/null || true
+          fi
+          ls -la dist_release/
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact_name }}
-          path: |
-            build/*/*.dmg
-            build/*/*.exe
-            build/*/*.deb
-            build/*/*.tar.gz
-            build/*/*.sh
+          path: dist_release/*
 
       - name: Publish Release Assets on Tag Push
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            build/*/*.dmg
-            build/*/*.exe
-            build/*/*.deb
-            build/*/*.tar.gz
+          files: dist_release/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
