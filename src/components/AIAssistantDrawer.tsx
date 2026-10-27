@@ -13,6 +13,7 @@ import {
   ChevronUp,
   Check,
   ArrowUp,
+  ArrowDown,
   Wrench,
   Loader2,
   SlidersHorizontal,
@@ -137,6 +138,12 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   const [newModelName, setNewModelName] = useState<string>("");
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
+  const [isQuickPromptsOpen, setIsQuickPromptsOpen] = useState<boolean>(true);
+  const [isAtBottom, setIsAtBottom] = useState<boolean>(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef<boolean>(true);
+  const prevMessagesLengthRef = useRef<number>(chatMessages.length);
+
   const handleCopyMessage = async (idx: number, text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -162,9 +169,27 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
 
   const handleSelectQuickPrompt = (prompt: string) => {
     setInput(prompt);
+    setIsQuickPromptsOpen(false);
     setTimeout(() => {
       inputRef.current?.focus();
     }, 50);
+  };
+
+  const handleScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const atBottom = distanceToBottom < 60;
+    setIsAtBottom(atBottom);
+    isAtBottomRef.current = atBottom;
+  };
+
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+    });
+    setIsAtBottom(true);
+    isAtBottomRef.current = true;
   };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -172,9 +197,18 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  // Auto-scroll on new messages
+  // Auto-scroll logic: only auto-scroll if user is already at the bottom or if a brand new message was added
   useEffect(() => {
-    if (isAIPanelOpen || isStandalone) {
+    if (!isAIPanelOpen && !isStandalone) return;
+
+    const isNewMessageAdded = chatMessages.length > prevMessagesLengthRef.current;
+    prevMessagesLengthRef.current = chatMessages.length;
+
+    if (isNewMessageAdded) {
+      // Always scroll down on a newly submitted prompt or turn
+      scrollToBottom(true);
+    } else if (isAtBottomRef.current) {
+      // During active token streaming or tool execution, only follow to bottom if user hasn't scrolled up
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatMessages, isAIGenerating, isAIPanelOpen, aiCurrentTool, isStandalone]);
@@ -332,18 +366,13 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
           <div className="p-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100">
             <Sparkles className="w-4 h-4 text-amber-500" />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-50">
-                AI财务治理助手
-              </h3>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 max-w-[130px] truncate">
-                {currentModelName}
-              </span>
-            </div>
-            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">
-              OpenAI Go SDK原生驱动 · 支持多轮工具调用与协同审核
-            </p>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-50">
+              AI助手
+            </h3>
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 max-w-[130px] truncate">
+              {currentModelName}
+            </span>
           </div>
         </div>
 
@@ -403,123 +432,154 @@ export const AIAssistantDrawer: React.FC<AIAssistantDrawerProps> = ({
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 px-4 py-3 overflow-y-auto space-y-4">
-        {chatMessages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`group relative flex flex-col ${
-              msg.role === "user" ? "items-end" : "items-start"
-            }`}
-          >
-            {/* Role Header & Timestamp & Action Buttons */}
-            {msg.role === "user" ? (
-              <div className="flex items-center gap-2 text-[10px] text-zinc-400 mb-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none">
-                <div className="flex items-center gap-1">
-                  <span>财务用户</span>
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="h-full px-4 py-3 overflow-y-auto space-y-4"
+        >
+          {chatMessages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`group relative flex flex-col ${
+                msg.role === "user" ? "items-end" : "items-start"
+              }`}
+            >
+              {/* Role Header & Timestamp & Action Buttons */}
+              {msg.role === "user" ? (
+                <div className="flex items-center gap-2 text-[10px] text-zinc-400 mb-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 select-none">
+                  <div className="flex items-center gap-1">
+                    <span>财务用户</span>
+                    {msg.createdAt && <span>· {msg.createdAt}</span>}
+                  </div>
+                  <div className="flex items-center gap-1 ml-1 text-zinc-400">
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyMessage(idx, msg.content)}
+                      title="复制文本"
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+                    >
+                      {copiedIdx === idx ? (
+                        <>
+                          <Check className="w-3 h-3 text-emerald-500" />
+                          <span className="text-emerald-500">已复制</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3 h-3" />
+                          <span>复制</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleWithdrawMessage(idx)}
+                      disabled={isAIGenerating}
+                      title="撤回到此消息前并填回输入框"
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>撤回</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-[10px] text-zinc-400 mb-1 px-1 select-none">
+                  <span>SmartAR审计专家</span>
                   {msg.createdAt && <span>· {msg.createdAt}</span>}
                 </div>
-                <div className="flex items-center gap-1 ml-1 text-zinc-400">
-                  <button
-                    type="button"
-                    onClick={() => void handleCopyMessage(idx, msg.content)}
-                    title="复制文本"
-                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
-                  >
-                    {copiedIdx === idx ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-500" />
-                        <span className="text-emerald-500">已复制</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        <span>复制</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleWithdrawMessage(idx)}
-                    disabled={isAIGenerating}
-                    title="撤回到此消息前并填回输入框"
-                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>撤回</span>
-                  </button>
+              )}
+
+              {/* Bubble */}
+              {msg.role === "user" ? (
+                <div className="max-w-[85%] rounded-2xl rounded-tr-xs px-3.5 py-2 text-xs bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs selection:bg-blue-600 selection:text-white dark:selection:bg-blue-600 dark:selection:text-white">
+                  {msg.content}
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 text-[10px] text-zinc-400 mb-1 px-1 select-none">
-                <span>SmartAR审计专家</span>
-                {msg.createdAt && <span>· {msg.createdAt}</span>}
-              </div>
-            )}
+              ) : (
+                <div className="max-w-[95%] space-y-2">
+                  {/* Reasoning Collapse Box */}
+                  {msg.reasoningContent && (
+                    <ReasoningBox text={msg.reasoningContent} />
+                  )}
 
-            {/* Bubble */}
-            {msg.role === "user" ? (
-              <div className="max-w-[85%] rounded-2xl rounded-tr-xs px-3.5 py-2 text-xs bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-xs selection:bg-blue-600 selection:text-white dark:selection:bg-blue-600 dark:selection:text-white">
-                {msg.content}
-              </div>
-            ) : (
-              <div className="max-w-[95%] space-y-2">
-                {/* Reasoning Collapse Box */}
-                {msg.reasoningContent && (
-                  <ReasoningBox text={msg.reasoningContent} />
-                )}
+                  {/* Content Bubble */}
+                  <div className="rounded-2xl rounded-tl-xs px-3.5 py-2.5 text-xs bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-xs selection:bg-blue-600 selection:text-white dark:selection:bg-blue-600 dark:selection:text-white">
+                    <MarkdownViewer content={msg.content || "..."} />
+                  </div>
 
-                {/* Content Bubble */}
-                <div className="rounded-2xl rounded-tl-xs px-3.5 py-2.5 text-xs bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-xs selection:bg-blue-600 selection:text-white dark:selection:bg-blue-600 dark:selection:text-white">
-                  <MarkdownViewer content={msg.content || "..."} />
+                  {/* Interactive Rule Proposal Card */}
+                  {msg.proposal && (
+                    <ProposalCard
+                      proposal={msg.proposal}
+                      onApprove={() => approveProposal(msg.proposal!.proposalId)}
+                      onReject={() => rejectProposal(msg.proposal!.proposalId)}
+                    />
+                  )}
                 </div>
+              )}
+            </div>
+          ))}
 
-                {/* Interactive Rule Proposal Card */}
-                {msg.proposal && (
-                  <ProposalCard
-                    proposal={msg.proposal}
-                    onApprove={() => approveProposal(msg.proposal!.proposalId)}
-                    onReject={() => rejectProposal(msg.proposal!.proposalId)}
-                  />
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+          {/* Real-time Tool Activity Indicator */}
+          {isAIGenerating && aiCurrentTool && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs animate-pulse">
+              <Wrench className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+              <span>{aiCurrentTool}</span>
+            </div>
+          )}
 
-        {/* Real-time Tool Activity Indicator */}
-        {isAIGenerating && aiCurrentTool && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 text-xs animate-pulse">
-            <Wrench className="w-3.5 h-3.5 text-amber-500 animate-spin" />
-            <span>{aiCurrentTool}</span>
-          </div>
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Scroll to Bottom Floating Button */}
+        {!isAtBottom && (
+          <button
+            type="button"
+            onClick={() => scrollToBottom(true)}
+            className="absolute right-4 bottom-3 z-30 p-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-lg transition-all flex items-center gap-1 text-[11px] font-medium cursor-pointer"
+            title="回到底部"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+            <span>回到底部</span>
+          </button>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Quick Prompts Carousel */}
       <div className="px-3.5 py-2 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900 shrink-0">
-        <div className="flex items-center justify-between text-[11px] font-medium text-zinc-400 mb-1.5">
-          <span>快捷财务分析指令 (点击填入输入框)</span>
-          <span className="text-[10px] text-zinc-500 font-mono">共{QUICK_PROMPTS.length}项Agent指令</span>
+        <div
+          onClick={() => setIsQuickPromptsOpen(!isQuickPromptsOpen)}
+          className="flex items-center justify-between text-[11px] font-medium text-zinc-400 mb-1.5 cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+        >
+          <span>快捷财务分析指令</span>
+          <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-mono">
+            <span>{isQuickPromptsOpen ? "收起" : "展开"}</span>
+            {isQuickPromptsOpen ? (
+              <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-1.5 max-h-28 overflow-y-auto pr-0.5">
-          {QUICK_PROMPTS.map((qp, idx) => {
-            const IconComp = qp.icon;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectQuickPrompt(qp.prompt)}
-                disabled={isAIGenerating}
-                className="text-left flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[11px] transition-colors truncate disabled:opacity-50 cursor-pointer shadow-2xs"
-              >
-                <IconComp className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
-                <span className="truncate">{qp.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {isQuickPromptsOpen && (
+          <div className="grid grid-cols-2 gap-1.5 max-h-28 overflow-y-auto pr-0.5">
+            {QUICK_PROMPTS.map((qp, idx) => {
+              const IconComp = qp.icon;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSelectQuickPrompt(qp.prompt)}
+                  disabled={isAIGenerating}
+                  className="text-left flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[11px] transition-colors truncate disabled:opacity-50 cursor-pointer shadow-2xs"
+                >
+                  <IconComp className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
+                  <span className="truncate">{qp.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Bottom Input Area with Integrated Model & Reasoning-Effort Popover */}

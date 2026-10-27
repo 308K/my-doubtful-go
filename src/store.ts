@@ -36,6 +36,7 @@ interface SmartARState {
   asOfDate: string;
   paletteMode: PaletteMode;
   darkMode: boolean;
+  zoomLevel: number;
   isRuleModalOpen: boolean;
 
   // AI Assistant States
@@ -62,6 +63,10 @@ interface SmartARState {
   setPaletteMode: (mode: PaletteMode) => void;
   togglePaletteMode: () => void;
   toggleDarkMode: () => void;
+  setZoomLevel: (zoom: number) => void;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
   openRuleModal: () => void;
   closeRuleModal: () => void;
   openAIPanel: () => void;
@@ -135,6 +140,29 @@ export const applyDarkModeDOM = (isDark: boolean) => {
   }
 };
 
+export const getInitialZoomLevel = (): number => {
+  if (typeof window === "undefined") return 1;
+  const saved = localStorage.getItem("smartar-zoom-level");
+  if (saved !== null) {
+    const parsed = parseFloat(saved);
+    if (!isNaN(parsed) && parsed >= 0.7 && parsed <= 1.5) {
+      return Math.round(parsed * 100) / 100;
+    }
+  }
+  return 1;
+};
+
+export const applyZoomDOM = (zoom: number) => {
+  if (typeof document === "undefined") return;
+  const clamped = Math.min(Math.max(zoom, 0.7), 1.5);
+  (document.documentElement.style as unknown as { zoom: string }).zoom = clamped.toString();
+  try {
+    localStorage.setItem("smartar-zoom-level", clamped.toString());
+  } catch {
+    // ignore
+  }
+};
+
 export const DEFAULT_WELCOME_MESSAGE: ChatMessage = {
   role: "assistant",
   content:
@@ -183,6 +211,7 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   asOfDate: "2026-06-30",
   paletteMode: "classic",
   darkMode: getInitialDarkMode(),
+  zoomLevel: getInitialZoomLevel(),
   isRuleModalOpen: false,
 
   // AI Assistant States
@@ -219,6 +248,28 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
       applyDarkModeDOM(next);
       return { darkMode: next };
     }),
+  setZoomLevel: (zoom: number) => {
+    const clamped = Math.min(Math.max(zoom, 0.7), 1.5);
+    const rounded = Math.round(clamped * 100) / 100;
+    applyZoomDOM(rounded);
+    set({ zoomLevel: rounded });
+  },
+  zoomIn: () => {
+    const current = get().zoomLevel;
+    const next = Math.min(Math.round((current + 0.1) * 10) / 10, 1.5);
+    applyZoomDOM(next);
+    set({ zoomLevel: next });
+  },
+  zoomOut: () => {
+    const current = get().zoomLevel;
+    const next = Math.max(Math.round((current - 0.1) * 10) / 10, 0.7);
+    applyZoomDOM(next);
+    set({ zoomLevel: next });
+  },
+  resetZoom: () => {
+    applyZoomDOM(1);
+    set({ zoomLevel: 1 });
+  },
   openRuleModal: () => set({ isRuleModalOpen: true }),
   closeRuleModal: () => set({ isRuleModalOpen: false }),
   openAIPanel: () => {
@@ -247,7 +298,9 @@ export const useSmartARStore = create<SmartARState>((set, get) => ({
   initApp: async () => {
     const isDark = getInitialDarkMode();
     applyDarkModeDOM(isDark);
-    set({ darkMode: isDark });
+    const zoom = getInitialZoomLevel();
+    applyZoomDOM(zoom);
+    set({ darkMode: isDark, zoomLevel: zoom });
     if (!isMyGo()) {
       set({
         error: "当前运行在浏览器预览模式，请通过桌面端运行以启用Go内核计算能力。",

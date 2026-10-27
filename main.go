@@ -52,7 +52,7 @@ func (s *SmartARService) GetSystemInfo() SystemInfo {
 		OS:         runtime.GOOS,
 		Arch:       runtime.GOARCH,
 		GoVersion:  runtime.Version(),
-		AppVersion: "2.2.0",
+		AppVersion: "2.3.0",
 		Engine:     "Pure Go + Excelize v2 (No CGo)",
 	}
 }

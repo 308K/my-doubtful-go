@@ -45,6 +45,9 @@ import {
   Cpu,
   SlidersHorizontal,
   FileText,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
 } from "lucide-react";
 
 const PIPELINE_STEPS: {
@@ -97,6 +100,7 @@ export const App: React.FC = () => {
     asOfDate,
     paletteMode,
     darkMode,
+    zoomLevel,
     searchQuery,
     tierFilter,
     regionFilter,
@@ -106,6 +110,9 @@ export const App: React.FC = () => {
     setPaletteMode,
     togglePaletteMode,
     toggleDarkMode,
+    zoomIn,
+    zoomOut,
+    resetZoom,
     openRuleModal,
     isAIPanelOpen,
     toggleAIPanel,
@@ -160,6 +167,15 @@ export const App: React.FC = () => {
         if (e.key === "F12" || (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i"))) {
           e.preventDefault();
           void SmartARService.toggleDevTools();
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === "=" || e.key === "+")) {
+          e.preventDefault();
+          zoomIn();
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === "-" || e.key === "_")) {
+          e.preventDefault();
+          zoomOut();
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === "0")) {
+          e.preventDefault();
+          resetZoom();
         }
       };
       window.addEventListener("keydown", handleKeyDown);
@@ -220,7 +236,7 @@ export const App: React.FC = () => {
                 SmartAR智能应收账款账龄分析与坏账预警系统
               </h1>
               <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                V2.2.0
+                V2.3.0
               </span>
             </div>
             {systemInfo && (
@@ -309,7 +325,7 @@ export const App: React.FC = () => {
                   ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-white"
                   : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
               )}
-              title="打开AI财务治理助手"
+              title="打开AI助手"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>AI助手</span>
@@ -324,6 +340,33 @@ export const App: React.FC = () => {
               <FileText className="w-3.5 h-3.5 text-zinc-400" />
               <span>审计管报</span>
             </button>
+
+            {/* Page Zoom Controls */}
+            <div className="flex items-center rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 overflow-hidden text-xs">
+              <button
+                onClick={zoomOut}
+                disabled={zoomLevel <= 0.7}
+                className="p-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40 cursor-pointer"
+                title="缩小页面 (Ctrl -)"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={resetZoom}
+                className="px-2 py-1 text-[11px] font-mono text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="点击重置缩放 (Ctrl 0)"
+              >
+                {Math.round(zoomLevel * 100)}%
+              </button>
+              <button
+                onClick={zoomIn}
+                disabled={zoomLevel >= 1.5}
+                className="p-1.5 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-40 cursor-pointer"
+                title="放大页面 (Ctrl +)"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             {/* Dark / Light Mode Toggle */}
             <button
